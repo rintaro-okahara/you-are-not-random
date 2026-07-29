@@ -429,7 +429,8 @@ a {
 }
 
 .result-heading h2:focus {
-  outline: none;
+  outline: 1px solid rgba(94, 234, 212, 0.42);
+  outline-offset: 8px;
 }
 
 .result-heading p:last-child {
@@ -717,6 +718,12 @@ button:disabled {
 
 .hand-button:hover::after {
   border-color: rgba(94, 234, 212, 0.3);
+}
+
+.hand-button:disabled:hover {
+  border-color: var(--line);
+  background: #0d1b1d;
+  transform: none;
 }
 
 .hand-key {
