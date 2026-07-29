@@ -35,6 +35,10 @@ export function handToIndex(hand: Hand): 0 | 1 | 2 {
   return HAND_INDEX[hand];
 }
 
+export function isHand(value: unknown): value is Hand {
+  return typeof value === "string" && HANDS.includes(value as Hand);
+}
+
 export function getPayoff(aiHand: Hand, humanHand: Hand): Reward {
   return PAYOFF_MATRIX[handToIndex(aiHand)][handToIndex(humanHand)];
 }
