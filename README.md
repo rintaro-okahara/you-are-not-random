@@ -1,25 +1,34 @@
-# You Are Not Random
+# 勝利不能？じゃんけんAI
 
-> A rock-paper-scissors opponent that learns your habits using full-information online learning.
+> **YOU ARE NOT RANDOM** — 50 rounds. 24 hypotheses. Can the AI expose your habits?
 
 人間のじゃんけんに現れる短期的な癖を、24個の予測戦略（expert）と
-Hedge / Fixed Shareでオンライン学習する、完全クライアントサイドの研究デモです。
+Hedge / Fixed Shareでオンライン学習する、完全クライアントサイドの
+50戦チャレンジ／研究デモです。
 
 AIは単なる周辺頻度だけでなく、「勝った手を繰り返す」「3手周期」
 「直前2手を条件にしたMarkov遷移」などを同時に評価します。Fixed Shareにより、
 対戦途中で人間の戦略が変わった場合にも重みを切り替えやすくしています。
 
-## Screenshot
+50戦目に、その時点でAIが最も強く支持した仮説と勝敗を固定診断として表示します。
+結果はPNG保存、Web Share、投稿文コピーで共有でき、診断後も同じ学習状態のまま
+51戦目以降を続けられます。
 
-ダークテーマの1ページダッシュボードに、対戦、累積成績、現在の仮説、
-24 expertの重み、regret、人間の遷移確率、履歴、設定をまとめています。
+## Preview
 
-スクリーンショットを追加する場合は、`npm run dev` で起動して数ラウンド対戦した後、
-幅1,440 px前後で撮影し、`docs/screenshot.png` に保存してください。
+![勝利不能？じゃんけんAI — YOU ARE NOT RANDOM](public/og-image.png)
+
+UIは一般向けの対戦・進捗・診断を表示する **PLAY** と、expert重み、regret、
+遷移確率、設定、履歴を表示する **LAB** に分かれています。
 
 ## Features
 
 - グー・パー・チョキを大きなボタンで選べるレスポンシブ対戦画面
+- 0〜7戦は分析中、8〜49戦は暫定仮説、50戦目で固定診断
+- 50戦診断後も累積学習を保ったまま対戦を続行可能
+- 固定診断から1200×630 PNGをブラウザ内生成し、共有・保存・投稿文コピー
+- PLAY / LABタブによる一般向け体験と研究テレメトリの分離
+- Open Graph / X Card用メタデータと静的OGP画像
 - 24 expertをfull-informationで毎ラウンド同時採点
 - Hedge更新後にFixed Shareを適用（既定 `η = 0.25`, `α = 0.03`）
 - `α = 0.00`〜`0.20`の忘却率コントロール
@@ -253,11 +262,11 @@ $$
 
 ## localStorage
 
-メタデータkeyは `you-are-not-random:v2`、schema versionは2です。共有統計、
-regret統計、現在の24 expert重み、`α`、学習ON/OFFを、履歴長に依存しない
-メタデータとして保存します。
+メタデータkeyは `you-are-not-random:v3`、schema versionは3です。共有統計、
+regret統計、現在の24 expert重み、`α`、学習ON/OFF、50戦challenge baseline、
+固定診断、PLAY / LAB選択を、履歴長に依存しないメタデータとして保存します。
 
-各ラウンドは `you-are-not-random:v2:round:0`〜`:1999` の2,000スロットへ
+各ラウンドは `you-are-not-random:v3:round:0`〜`:1999` の2,000スロットへ
 循環保存します。通常の1ラウンドでは新しいラウンド1件と固定サイズのメタデータ
 だけをserializeするため、全履歴の `JSON.stringify` は発生しません。起動時に
 React stateへ復元する表示用履歴は最新15件だけです。
@@ -265,8 +274,10 @@ React stateへ復元する表示用履歴は最新15件だけです。
 各ラウンドには、人間とAIの手、使用済みAI分布、更新前expert重み、全expert報酬、
 AIの期待報酬、実際の報酬、学習状態、ID、timestampを保存します。
 壊れたJSON、未知version、非有限値、長さが異なるvectorはcache missとして扱い、
-アプリを初期状態で起動します。旧schema version 1の保存データは移行せず、
-初期状態から開始します。
+アプリを初期状態で起動します。schema version 2の累積学習状態と直近履歴は
+保持し、その時点をbaselineとする新しい50戦challengeへ移行します。正確な
+過去50戦時点の重みは復元できないため、移行前データから診断は捏造しません。
+旧schema version 1の保存データは移行せず、初期状態から開始します。
 
 ## Limitations
 
@@ -286,10 +297,12 @@ AIの期待報酬、実際の報酬、学習状態、ID、timestampを保存し�
 ```text
 src/
   app/         reducer, initialization, page composition
+  challenge/   50-round lifecycle, baseline, frozen diagnosis
   components/  accessible dashboard cards
   domain/      canonical hands, payoffs, probability types
   engine/      private pending-round protocol and sampling
   learning/    shared incremental stats, experts, Hedge, Fixed Share, regret
+  sharing/     Canvas result image, Web Share, download, clipboard
   stats/       aggregate match stats and Markov transitions
   storage/     versioned localStorage adapter
   styles/      responsive dark visual system

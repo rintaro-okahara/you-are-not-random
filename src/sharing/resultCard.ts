@@ -171,15 +171,20 @@ export async function shareResult(
   }
 
   const text = createShareText(result, url);
-  const blob = await createResultPng(result);
-  const file = new File([blob], "shori-funo-janken-ai.png", {
-    type: "image/png",
-  });
-  if (navigator.canShare?.({ files: [file] }) === true) {
+  const probeFile = new File(
+    [new Blob([], { type: "image/png" })],
+    "shori-funo-janken-ai.png",
+    { type: "image/png" },
+  );
+  if (navigator.canShare?.({ files: [probeFile] }) === true) {
+    const blob = await createResultPng(result);
+    const file = new File([blob], "shori-funo-janken-ai.png", {
+      type: "image/png",
+    });
     await navigator.share({ title: SHARE_TITLE, text, files: [file] });
-  } else {
-    await navigator.share({ title: SHARE_TITLE, text, url });
+    return;
   }
+  await navigator.share({ title: SHARE_TITLE, text, url });
 }
 
 export async function downloadResult(

@@ -89,6 +89,26 @@ describe("result sharing", () => {
     );
   });
 
+  it("shares text without generating a PNG when file sharing is unsupported", async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    const toBlob = vi.spyOn(HTMLCanvasElement.prototype, "toBlob");
+    Object.defineProperties(navigator, {
+      share: { configurable: true, value: share },
+      canShare: {
+        configurable: true,
+        value: vi.fn(() => false),
+      },
+    });
+
+    await shareResult(result, "https://example.test/");
+    expect(share).toHaveBeenCalledWith({
+      title: "勝利不能？じゃんけんAI — YOU ARE NOT RANDOM",
+      text: expect.stringContaining("疑われました"),
+      url: "https://example.test/",
+    });
+    expect(toBlob).not.toHaveBeenCalled();
+  });
+
   it("copies the generated post text", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {
