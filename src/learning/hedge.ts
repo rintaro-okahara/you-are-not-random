@@ -27,6 +27,9 @@ export function normalizeWeights(
   if (!Number.isFinite(sum) || sum <= 0) {
     return uniformWeights(values.length);
   }
+  if (Math.abs(sum - 1) <= 1e-12) {
+    return [...values];
+  }
   return values.map((value) => value / sum);
 }
 

@@ -1,0 +1,42 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { App } from "./App";
+
+describe("You Are Not Random UI", () => {
+  it("does not render the private current AI distribution before play", () => {
+    render(<App random={() => 0} />);
+    expect(screen.queryByText("このラウンドでAIが使った確率")).toBeNull();
+    expect(screen.getByText("手を選ぶまでAIの手と確率は非公開です")).toBeVisible();
+  });
+
+  it("reveals only the completed round distribution after a choice", async () => {
+    const user = userEvent.setup();
+    render(<App random={() => 0} />);
+    await user.click(screen.getByRole("button", { name: "パーを出す" }));
+    expect(screen.getByText("このラウンドでAIが使った確率")).toBeVisible();
+    expect(
+      screen.getByRole("status", { name: "直近ラウンドの結果" }),
+    ).toHaveTextContent("あなたの勝ち");
+    expect(screen.getByText("AI：グー")).toBeVisible();
+  });
+
+  it("clearly announces uniform random play while learning is off", async () => {
+    const user = userEvent.setup();
+    render(<App random={() => 0} />);
+    await user.click(
+      screen.getByRole("checkbox", { name: "学習を有効にする" }),
+    );
+    expect(screen.getByText("学習停止中：AIは一様ランダムです")).toBeVisible();
+  });
+
+  it("clears visible history after confirmed reset", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<App random={() => 0} />);
+    await user.click(screen.getByRole("button", { name: "グーを出す" }));
+    expect(screen.getByText("ラウンド #1")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "すべてリセット" }));
+    expect(screen.getByText("まだ対戦履歴がありません")).toBeVisible();
+  });
+});

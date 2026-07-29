@@ -1,0 +1,68 @@
+import { describe, expect, it } from "vitest";
+import { UNIFORM_PROBABILITY } from "../domain/probability";
+import { EXPERTS } from "../learning/experts";
+import { DEFAULT_ALPHA, uniformWeights } from "../learning/hedge";
+import { appReducer, type AppAction } from "./appReducer";
+import { createInitialState } from "./initialState";
+
+const zeroRandom = () => 0;
+
+function reduce(action: AppAction) {
+  return appReducer(createInitialState({ random: zeroRandom }), action);
+}
+
+describe("application reducer", () => {
+  it("initializes a sampled private pending round", () => {
+    const state = createInitialState({ random: zeroRandom });
+    expect(state.pendingRound.aiHand).toBe("rock");
+    expect(state.pendingRound.expertActionDistributions).toHaveLength(
+      EXPERTS.length,
+    );
+    expect(state.history).toEqual([]);
+  });
+
+  it("plays the pending round and prepares the next one", () => {
+    const before = createInitialState({ random: zeroRandom });
+    const after = appReducer(before, {
+      type: "play",
+      humanHand: "paper",
+      random: () => 0.999,
+    });
+    expect(after.history).toHaveLength(1);
+    expect(after.history[0]?.aiHand).toBe("rock");
+    expect(after.pendingRound.aiHand).toBe("scissors");
+  });
+
+  it("resamples a uniform pending round when learning is disabled", () => {
+    const state = reduce({
+      type: "set-learning",
+      enabled: false,
+      random: () => 0.7,
+    });
+    expect(state.learningEnabled).toBe(false);
+    expect(state.pendingRound.aiDistribution).toEqual(UNIFORM_PROBABILITY);
+    expect(state.pendingRound.aiHand).toBe("scissors");
+  });
+
+  it("clamps Fixed Share alpha to the UI range", () => {
+    expect(reduce({ type: "set-alpha", alpha: 9 }).alpha).toBe(0.2);
+    expect(reduce({ type: "set-alpha", alpha: -1 }).alpha).toBe(0);
+  });
+
+  it("resets history, settings, weights, and pending round", () => {
+    const played = appReducer(createInitialState({ random: zeroRandom }), {
+      type: "play",
+      humanHand: "rock",
+      random: zeroRandom,
+    });
+    const reset = appReducer(played, {
+      type: "reset",
+      random: zeroRandom,
+    });
+    expect(reset.history).toEqual([]);
+    expect(reset.alpha).toBe(DEFAULT_ALPHA);
+    expect(reset.learningEnabled).toBe(true);
+    expect(reset.expertWeights).toEqual(uniformWeights(EXPERTS.length));
+    expect(reset.pendingRound.aiHand).toBe("rock");
+  });
+});
