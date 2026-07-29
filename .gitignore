@@ -1,0 +1,12 @@
+.worktrees/
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
+*.local
+*.log
