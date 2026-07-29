@@ -46,7 +46,7 @@ Viteが表示するURL（通常は `http://localhost:5173`）を開いてくだ�
 
 ```bash
 npm run lint
-npm run test -- --run
+npm run test
 npm run build
 ```
 
