@@ -81,4 +81,64 @@ describe("application reducer", () => {
     expect(state.learningStats.totalRounds).toBe(20);
     expect(state.regretStats.learningRounds).toBe(20);
   });
+
+  it("stops at round 50, then continues without replacing the result", () => {
+    let state = createInitialState({ random: zeroRandom });
+    for (let round = 0; round < 50; round += 1) {
+      state = appReducer(state, {
+        type: "play",
+        humanHand: "rock",
+        random: zeroRandom,
+        now: () => round,
+        createId: () => `challenge-${round}`,
+      });
+    }
+
+    expect(state.challenge.status).toBe("result");
+    expect(state.challenge.result).not.toBeNull();
+    const frozenResult = state.challenge.result;
+
+    const blocked = appReducer(state, {
+      type: "play",
+      humanHand: "rock",
+      random: zeroRandom,
+    });
+    expect(blocked.learningStats.totalRounds).toBe(50);
+
+    const continued = appReducer(state, { type: "continue-challenge" });
+    const round51 = appReducer(continued, {
+      type: "play",
+      humanHand: "rock",
+      random: zeroRandom,
+      createId: () => "continued-51",
+    });
+    expect(round51.learningStats.totalRounds).toBe(51);
+    expect(round51.challenge.result).toEqual(frozenResult);
+  });
+
+  it("retries with clean learning data while preserving user settings", () => {
+    let state = createInitialState({ random: zeroRandom });
+    state = appReducer(state, { type: "set-alpha", alpha: 0.12 });
+    state = appReducer(state, {
+      type: "set-learning",
+      enabled: false,
+      random: zeroRandom,
+    });
+    state = appReducer(state, {
+      type: "play",
+      humanHand: "rock",
+      random: zeroRandom,
+    });
+
+    const retried = appReducer(state, {
+      type: "retry-challenge",
+      random: zeroRandom,
+    });
+
+    expect(retried.learningStats.totalRounds).toBe(0);
+    expect(retried.recentHistory).toEqual([]);
+    expect(retried.challenge.result).toBeNull();
+    expect(retried.alpha).toBe(0.12);
+    expect(retried.learningEnabled).toBe(false);
+  });
 });

@@ -1,6 +1,13 @@
 import { isProbabilityVector } from "../domain/probability";
 import { isHand } from "../domain/rps";
 import type { Reward, RoundRecord } from "../domain/types";
+import {
+  CHALLENGE_ROUNDS,
+  createChallengeState,
+  type ChallengeBaseline,
+  type ChallengeResult,
+  type ChallengeState,
+} from "../challenge/challenge";
 import { EXPERTS } from "../learning/experts";
 import type {
   CountVector,
@@ -9,13 +16,15 @@ import type {
 } from "../learning/learningStats";
 import type { RegretStats } from "../learning/regret";
 
-export const STORAGE_KEY = "you-are-not-random:v2";
-export const SCHEMA_VERSION = 2;
+export const STORAGE_KEY = "you-are-not-random:v3";
+export const SCHEMA_VERSION = 3;
 export const MAX_STORED_ROUNDS = 2_000;
 
+const V2_STORAGE_KEY = "you-are-not-random:v2";
 const LEGACY_STORAGE_KEY = "you-are-not-random:v1";
 const RECENT_HISTORY_LIMIT = 15;
 const ROUND_KEY_PREFIX = `${STORAGE_KEY}:round:`;
+const V2_ROUND_KEY_PREFIX = `${V2_STORAGE_KEY}:round:`;
 
 export interface PersistedAppState {
   readonly recentHistory: readonly RoundRecord[];
@@ -24,6 +33,8 @@ export interface PersistedAppState {
   readonly expertWeights: readonly number[];
   readonly alpha: number;
   readonly learningEnabled: boolean;
+  readonly challenge: ChallengeState;
+  readonly activeView: "play" | "lab";
 }
 
 interface StoredState {
@@ -32,6 +43,8 @@ interface StoredState {
   readonly expertWeights: readonly number[];
   readonly alpha: number;
   readonly learningEnabled: boolean;
+  readonly challenge: ChallengeState;
+  readonly activeView: "play" | "lab";
 }
 
 interface StoredEnvelope {
@@ -40,6 +53,22 @@ interface StoredEnvelope {
   readonly storedRoundCount: number;
   readonly latestRoundId: string | null;
   readonly state: StoredState;
+}
+
+interface V2StoredState {
+  readonly learningStats: LearningStats;
+  readonly regretStats: RegretStats;
+  readonly expertWeights: readonly number[];
+  readonly alpha: number;
+  readonly learningEnabled: boolean;
+}
+
+interface V2StoredEnvelope {
+  readonly schemaVersion: 2;
+  readonly totalRounds: number;
+  readonly storedRoundCount: number;
+  readonly latestRoundId: string | null;
+  readonly state: V2StoredState;
 }
 
 interface StorageLike {
@@ -57,6 +86,13 @@ export function roundStorageKey(sequence: number): string {
     ((Math.trunc(sequence) % MAX_STORED_ROUNDS) + MAX_STORED_ROUNDS) %
     MAX_STORED_ROUNDS;
   return `${ROUND_KEY_PREFIX}${slot}`;
+}
+
+function v2RoundStorageKey(sequence: number): string {
+  const slot =
+    ((Math.trunc(sequence) % MAX_STORED_ROUNDS) + MAX_STORED_ROUNDS) %
+    MAX_STORED_ROUNDS;
+  return `${V2_ROUND_KEY_PREFIX}${slot}`;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -211,6 +247,77 @@ function isStoredState(value: unknown): value is StoredState {
     Number.isFinite(state.alpha) &&
     state.alpha >= 0 &&
     state.alpha <= 0.2 &&
+    typeof state.learningEnabled === "boolean" &&
+    isChallengeState(state.challenge) &&
+    (state.activeView === "play" || state.activeView === "lab")
+  );
+}
+
+function isChallengeBaseline(value: unknown): value is ChallengeBaseline {
+  const baseline = asRecord(value);
+  return (
+    baseline !== null &&
+    isNonNegativeInteger(baseline.totalRounds) &&
+    isNonNegativeInteger(baseline.aiWins) &&
+    isNonNegativeInteger(baseline.humanWins) &&
+    isNonNegativeInteger(baseline.draws)
+  );
+}
+
+function isChallengeResult(value: unknown): value is ChallengeResult {
+  const result = asRecord(value);
+  return (
+    result !== null &&
+    typeof result.completedAt === "number" &&
+    Number.isFinite(result.completedAt) &&
+    isNonNegativeInteger(result.aiWins) &&
+    isNonNegativeInteger(result.humanWins) &&
+    isNonNegativeInteger(result.draws) &&
+    result.aiWins + result.humanWins + result.draws === CHALLENGE_ROUNDS &&
+    typeof result.expertId === "string" &&
+    result.expertId.length > 0 &&
+    typeof result.expertName === "string" &&
+    result.expertName.length > 0 &&
+    typeof result.suspicionText === "string" &&
+    result.suspicionText.length > 0 &&
+    typeof result.support === "number" &&
+    Number.isFinite(result.support) &&
+    result.support >= 0 &&
+    result.support <= 1
+  );
+}
+
+function isChallengeState(value: unknown): value is ChallengeState {
+  const challenge = asRecord(value);
+  if (
+    challenge === null ||
+    (challenge.status !== "active" &&
+      challenge.status !== "result" &&
+      challenge.status !== "continued") ||
+    !isChallengeBaseline(challenge.baseline)
+  ) {
+    return false;
+  }
+  if (challenge.result === null) {
+    return challenge.status === "active";
+  }
+  return (
+    isChallengeResult(challenge.result) &&
+    challenge.status !== "active"
+  );
+}
+
+function isV2StoredState(value: unknown): value is V2StoredState {
+  const state = asRecord(value);
+  return (
+    state !== null &&
+    isLearningStats(state.learningStats) &&
+    isRegretStats(state.regretStats) &&
+    isNormalizedWeights(state.expertWeights) &&
+    typeof state.alpha === "number" &&
+    Number.isFinite(state.alpha) &&
+    state.alpha >= 0 &&
+    state.alpha <= 0.2 &&
     typeof state.learningEnabled === "boolean"
   );
 }
@@ -230,6 +337,21 @@ function isStoredEnvelope(value: unknown): value is StoredEnvelope {
   );
 }
 
+function isV2StoredEnvelope(value: unknown): value is V2StoredEnvelope {
+  const envelope = asRecord(value);
+  return (
+    envelope !== null &&
+    envelope.schemaVersion === 2 &&
+    isNonNegativeInteger(envelope.totalRounds) &&
+    isNonNegativeInteger(envelope.storedRoundCount) &&
+    envelope.storedRoundCount <= MAX_STORED_ROUNDS &&
+    (envelope.latestRoundId === null ||
+      typeof envelope.latestRoundId === "string") &&
+    isV2StoredState(envelope.state) &&
+    envelope.state.learningStats.totalRounds === envelope.totalRounds
+  );
+}
+
 function parseEnvelope(raw: string | null): StoredEnvelope | null {
   if (raw === null) {
     return null;
@@ -242,6 +364,18 @@ function parseEnvelope(raw: string | null): StoredEnvelope | null {
   }
 }
 
+function parseV2Envelope(raw: string | null): V2StoredEnvelope | null {
+  if (raw === null) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return isV2StoredEnvelope(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 function storedState(state: PersistedAppState): StoredState {
   return {
     learningStats: state.learningStats,
@@ -249,7 +383,36 @@ function storedState(state: PersistedAppState): StoredState {
     expertWeights: state.expertWeights,
     alpha: state.alpha,
     learningEnabled: state.learningEnabled,
+    challenge: state.challenge,
+    activeView: state.activeView,
   };
+}
+
+function loadRecentHistory(
+  envelope: Pick<StoredEnvelope, "storedRoundCount" | "totalRounds">,
+  storage: StorageLike,
+  storageKey: (sequence: number) => string,
+): readonly RoundRecord[] | null {
+  const recentCount = Math.min(
+    envelope.storedRoundCount,
+    RECENT_HISTORY_LIMIT,
+  );
+  const firstSequence = envelope.totalRounds - recentCount;
+  const recentHistory: RoundRecord[] = [];
+  for (
+    let sequence = firstSequence;
+    sequence < envelope.totalRounds;
+    sequence += 1
+  ) {
+    const rawRound = storage.getItem(storageKey(sequence));
+    const parsedRound =
+      rawRound === null ? null : (JSON.parse(rawRound) as unknown);
+    if (!isRoundRecord(parsedRound)) {
+      return null;
+    }
+    recentHistory.push(parsedRound);
+  }
+  return recentHistory;
 }
 
 export function loadState(
@@ -262,33 +425,43 @@ export function loadState(
 
   try {
     const envelope = parseEnvelope(storage.getItem(STORAGE_KEY));
-    if (envelope === null) {
-      return defaults;
-    }
-
-    const recentCount = Math.min(
-      envelope.storedRoundCount,
-      RECENT_HISTORY_LIMIT,
-    );
-    const firstSequence = envelope.totalRounds - recentCount;
-    const recentHistory: RoundRecord[] = [];
-    for (
-      let sequence = firstSequence;
-      sequence < envelope.totalRounds;
-      sequence += 1
-    ) {
-      const rawRound = storage.getItem(roundStorageKey(sequence));
-      const parsedRound =
-        rawRound === null ? null : (JSON.parse(rawRound) as unknown);
-      if (!isRoundRecord(parsedRound)) {
+    if (envelope !== null) {
+      const recentHistory = loadRecentHistory(
+        envelope,
+        storage,
+        roundStorageKey,
+      );
+      if (recentHistory === null) {
         return defaults;
       }
-      recentHistory.push(parsedRound);
+      const hasResult = envelope.state.challenge.result !== null;
+      return {
+        ...envelope.state,
+        challenge: hasResult
+          ? { ...envelope.state.challenge, status: "result" }
+          : envelope.state.challenge,
+        activeView: hasResult ? "play" : envelope.state.activeView,
+        recentHistory,
+      };
     }
 
+    const v2Envelope = parseV2Envelope(storage.getItem(V2_STORAGE_KEY));
+    if (v2Envelope === null) {
+      return defaults;
+    }
+    const recentHistory = loadRecentHistory(
+      v2Envelope,
+      storage,
+      v2RoundStorageKey,
+    );
+    if (recentHistory === null) {
+      return defaults;
+    }
     return {
-      ...envelope.state,
+      ...v2Envelope.state,
       recentHistory,
+      challenge: createChallengeState(v2Envelope.state.learningStats),
+      activeView: "play",
     };
   } catch {
     return defaults;
@@ -359,9 +532,11 @@ export function clearSavedState(
   }
   try {
     storage.removeItem(STORAGE_KEY);
+    storage.removeItem(V2_STORAGE_KEY);
     storage.removeItem(LEGACY_STORAGE_KEY);
     for (let slot = 0; slot < MAX_STORED_ROUNDS; slot += 1) {
       storage.removeItem(roundStorageKey(slot));
+      storage.removeItem(v2RoundStorageKey(slot));
     }
   } catch {
     // Storage can be blocked; in-memory reset must still succeed.

@@ -1,4 +1,9 @@
 import type { Hand } from "../domain/types";
+import {
+  advanceChallenge,
+  continueChallenge,
+  createChallengeState,
+} from "../challenge/challenge";
 import { playPendingRound, preparePendingRound } from "../engine/gameEngine";
 import { type RandomSource, secureRandom } from "../engine/sampling";
 import type { PersistedAppState } from "../storage/localStorage";
@@ -24,6 +29,9 @@ export type AppAction =
       readonly random?: RandomSource;
     }
   | { readonly type: "set-alpha"; readonly alpha: number }
+  | { readonly type: "set-view"; readonly view: "play" | "lab" }
+  | { readonly type: "continue-challenge" }
+  | { readonly type: "retry-challenge"; readonly random?: RandomSource }
   | { readonly type: "reset"; readonly random?: RandomSource };
 
 function clampAlpha(alpha: number): number {
@@ -36,6 +44,9 @@ function clampAlpha(alpha: number): number {
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "play": {
+      if (state.challenge.status === "result") {
+        return state;
+      }
       const result = playPendingRound({
         pending: state.pendingRound,
         humanHand: action.humanHand,
@@ -53,6 +64,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         learningStats: result.nextLearningStats,
         regretStats: result.nextRegretStats,
         expertWeights: result.nextWeights,
+        challenge: advanceChallenge(
+          state.challenge,
+          result.nextLearningStats,
+          result.nextWeights,
+          result.record.timestamp,
+        ),
         pendingRound: preparePendingRound(
           result.nextLearningStats,
           result.nextWeights,
@@ -74,6 +91,28 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
     case "set-alpha":
       return { ...state, alpha: clampAlpha(action.alpha) };
+    case "set-view":
+      return { ...state, activeView: action.view };
+    case "continue-challenge":
+      return {
+        ...state,
+        challenge: continueChallenge(state.challenge),
+      };
+    case "retry-challenge": {
+      const defaults: PersistedAppState = {
+        ...DEFAULT_PERSISTED_STATE,
+        recentHistory: [],
+        alpha: state.alpha,
+        learningEnabled: state.learningEnabled,
+        challenge: createChallengeState(
+          DEFAULT_PERSISTED_STATE.learningStats,
+        ),
+      };
+      return createInitialState({
+        persisted: defaults,
+        random: action.random ?? secureRandom,
+      });
+    }
     case "reset": {
       const defaults: PersistedAppState = {
         ...DEFAULT_PERSISTED_STATE,

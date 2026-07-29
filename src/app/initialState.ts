@@ -1,5 +1,9 @@
 import type { RoundRecord } from "../domain/types";
 import {
+  createChallengeState,
+  type ChallengeState,
+} from "../challenge/challenge";
+import {
   preparePendingRound,
   type PendingRound,
 } from "../engine/gameEngine";
@@ -27,15 +31,21 @@ export interface AppState {
   readonly alpha: number;
   readonly learningEnabled: boolean;
   readonly pendingRound: PendingRound;
+  readonly challenge: ChallengeState;
+  readonly activeView: "play" | "lab";
 }
+
+const defaultLearningStats = createLearningStats();
 
 export const DEFAULT_PERSISTED_STATE: PersistedAppState = {
   recentHistory: [],
-  learningStats: createLearningStats(),
+  learningStats: defaultLearningStats,
   regretStats: createRegretStats(EXPERTS.length),
   expertWeights: uniformWeights(EXPERTS.length),
   alpha: DEFAULT_ALPHA,
   learningEnabled: true,
+  challenge: createChallengeState(defaultLearningStats),
+  activeView: "play",
 };
 
 interface InitialStateOptions {
@@ -67,5 +77,7 @@ export function toPersistedState(state: AppState): PersistedAppState {
     expertWeights: state.expertWeights,
     alpha: state.alpha,
     learningEnabled: state.learningEnabled,
+    challenge: state.challenge,
+    activeView: state.activeView,
   };
 }

@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import {
+  advanceChallenge,
+  createChallengeState,
+} from "../challenge/challenge";
 import { EXPERTS } from "../learning/experts";
 import { uniformWeights } from "../learning/hedge";
 import {
@@ -31,6 +35,8 @@ const defaults: PersistedAppState = {
   expertWeights: weights,
   alpha: 0.03,
   learningEnabled: true,
+  challenge: createChallengeState(createLearningStats()),
+  activeView: "play",
 };
 
 function validRound(id: string, humanHand: "rock" | "paper" = "paper") {
@@ -65,8 +71,75 @@ describe("versioned localStorage", () => {
     });
     saveState(state);
     expect(loadState(defaults)).toEqual(state);
-    expect(SCHEMA_VERSION).toBe(2);
+    expect(SCHEMA_VERSION).toBe(3);
     expect(localStorage.getItem(roundStorageKey(0))).not.toBeNull();
+  });
+
+  it("persists the active view", () => {
+    saveState({ ...defaults, activeView: "lab" });
+    expect(loadState(defaults).activeView).toBe("lab");
+  });
+
+  it("migrates cumulative schema v2 state into a fresh challenge", () => {
+    const rounds = [
+      validRound("legacy-one"),
+      validRound("legacy-two"),
+      validRound("legacy-three"),
+    ];
+    const legacy = stateWithRounds(rounds);
+    const legacyState = {
+      learningStats: legacy.learningStats,
+      regretStats: legacy.regretStats,
+      expertWeights: legacy.expertWeights,
+      alpha: legacy.alpha,
+      learningEnabled: legacy.learningEnabled,
+    };
+    localStorage.setItem(
+      "you-are-not-random:v2",
+      JSON.stringify({
+        schemaVersion: 2,
+        totalRounds: 3,
+        storedRoundCount: 3,
+        latestRoundId: "legacy-three",
+        state: legacyState,
+      }),
+    );
+    rounds.forEach((round, index) => {
+      localStorage.setItem(
+        `you-are-not-random:v2:round:${index}`,
+        JSON.stringify(round),
+      );
+    });
+
+    const migrated = loadState(defaults);
+    expect(migrated.learningStats.totalRounds).toBe(3);
+    expect(migrated.challenge.baseline.totalRounds).toBe(3);
+    expect(migrated.challenge.result).toBeNull();
+    expect(migrated.activeView).toBe("play");
+  });
+
+  it("restores a frozen result and later cumulative rounds on reload", () => {
+    const rounds = Array.from({ length: 65 }, (_, index) =>
+      validRound(`round-${index}`),
+    );
+    const at50 = stateWithRounds(rounds.slice(0, 50));
+    const completed = advanceChallenge(
+      defaults.challenge,
+      at50.learningStats,
+      weights,
+      123,
+    );
+    const at65 = stateWithRounds(rounds, {
+      challenge: { ...completed, status: "continued" },
+      activeView: "lab",
+    });
+
+    saveState(at65);
+    const restored = loadState(defaults);
+    expect(restored.learningStats.totalRounds).toBe(65);
+    expect(restored.challenge.status).toBe("result");
+    expect(restored.challenge.result).toEqual(completed.result);
+    expect(restored.activeView).toBe("play");
   });
 
   it("falls back safely for malformed JSON", () => {
