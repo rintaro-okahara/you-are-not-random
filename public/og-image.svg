@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#5eead4" stroke-opacity=".07"/>
+    </pattern>
+    <radialGradient id="glow" cx="82%" cy="18%" r="62%">
+      <stop offset="0" stop-color="#278e81" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#061011" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#061011"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <path d="M70 62h240M70 62v506" stroke="#5eead4" stroke-width="5"/>
+  <text x="108" y="116" fill="#8ca29e" font-family="monospace" font-size="19" letter-spacing="3">
+    50 ROUND ANALYSIS / 24 HYPOTHESES
+  </text>
+  <text x="104" y="242" fill="#e8f1ee" font-family="Arial, Hiragino Sans, sans-serif" font-size="72" font-weight="800">
+    勝利不能？じゃんけんAI
+  </text>
+  <text x="108" y="300" fill="#5eead4" font-family="monospace" font-size="27" letter-spacing="6">
+    YOU ARE NOT RANDOM
+  </text>
+  <line x1="108" y1="354" x2="1088" y2="354" stroke="#b0d8d0" stroke-opacity=".18"/>
+  <text x="108" y="424" fill="#e8f1ee" font-family="Arial, Hiragino Sans, sans-serif" font-size="34" font-weight="700">
+    あなたはAIに読まれずにいられる？
+  </text>
+  <text x="108" y="492" fill="#8ca29e" font-family="Arial, Hiragino Sans, sans-serif" font-size="22">
+    24種類の「あなたの癖の仮説」がリアルタイムで競い合う
+  </text>
+  <text x="108" y="554" fill="#5eead4" font-family="monospace" font-size="18" letter-spacing="2">
+    ROCK / PAPER / SCISSORS — FULL-INFORMATION ONLINE LEARNING
+  </text>
+</svg>

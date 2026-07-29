@@ -169,13 +169,22 @@ a {
   color: var(--cyan);
 }
 
+.hero-subtitle {
+  margin: 22px 0 0;
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.24em;
+}
+
 .hero h1 {
-  margin: 20px 0 0;
+  margin: 16px 0 0;
   max-width: 920px;
-  font-size: clamp(58px, 8.4vw, 126px);
+  font-size: clamp(54px, 7.6vw, 112px);
   font-weight: 800;
-  line-height: 0.82;
-  letter-spacing: -0.075em;
+  line-height: 0.94;
+  letter-spacing: -0.065em;
+  word-break: keep-all;
 }
 
 .hero h1 em {
@@ -212,6 +221,167 @@ a {
   background: var(--cyan);
 }
 
+.view-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(460px, 100%);
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.view-tabs button {
+  min-height: 58px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  color: var(--faint);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+}
+
+.view-tabs button:first-child {
+  border-left: 0;
+}
+
+.view-tabs button span {
+  margin-right: 12px;
+  color: var(--faint);
+  font-size: 8px;
+}
+
+.view-tabs button[aria-selected="true"] {
+  color: var(--bg);
+  background: var(--cyan);
+}
+
+.view-tabs button[aria-selected="true"] span {
+  color: rgba(6, 16, 17, 0.58);
+}
+
+.view-panel {
+  min-height: 520px;
+}
+
+.challenge-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.52fr);
+  gap: 48px;
+  align-items: end;
+  margin-bottom: 14px;
+  padding: 30px 32px;
+}
+
+.challenge-progress h2 {
+  margin: 9px 0 8px;
+  font-size: clamp(20px, 2.2vw, 30px);
+  letter-spacing: -0.04em;
+}
+
+.challenge-progress p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.challenge-progress-value {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.challenge-progress-value strong {
+  color: var(--cyan-bright);
+  font-family: var(--mono);
+  font-size: 46px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.challenge-progress-value span {
+  margin-left: 8px;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 15px;
+}
+
+.challenge-progress-value b {
+  margin-left: auto;
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.challenge-progress progress {
+  width: 100%;
+  height: 6px;
+  border: 0;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.challenge-progress progress::-webkit-progress-bar {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.challenge-progress progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #278e81, var(--cyan));
+  box-shadow: 0 0 12px rgba(94, 234, 212, 0.32);
+}
+
+.challenge-progress progress::-moz-progress-bar {
+  background: linear-gradient(90deg, #278e81, var(--cyan));
+}
+
+.play-grid .suspicion-card {
+  grid-column: 1 / -1;
+}
+
+.lab-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 14px;
+  padding: 30px 32px;
+  border: 1px solid var(--line);
+  background: rgba(10, 22, 24, 0.75);
+}
+
+.lab-intro h2 {
+  margin: 9px 0 8px;
+  font-size: 24px;
+}
+
+.lab-intro p:not(.eyebrow) {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+.diagnosis-return {
+  min-width: 180px;
+  min-height: 44px;
+  border: 1px solid rgba(94, 234, 212, 0.35);
+  color: var(--cyan);
+  background: rgba(94, 234, 212, 0.05);
+  font-family: var(--mono);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.lab-grid .regret-card,
+.lab-grid .transition-card,
+.lab-grid .settings-card {
+  grid-column: span 4;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -236,6 +406,168 @@ a {
   height: 1px;
   content: "";
   background: var(--cyan);
+}
+
+.challenge-result {
+  margin-bottom: 72px;
+  padding: clamp(28px, 5vw, 64px);
+  background:
+    radial-gradient(circle at 82% 12%, rgba(94, 234, 212, 0.11), transparent 25rem),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.018), transparent 48%),
+    var(--surface);
+}
+
+.result-heading {
+  padding-bottom: 30px;
+  border-bottom: 1px solid var(--line);
+}
+
+.result-heading h2 {
+  margin: 10px 0 8px;
+  font-size: clamp(42px, 6vw, 76px);
+  letter-spacing: -0.06em;
+}
+
+.result-heading h2:focus {
+  outline: none;
+}
+
+.result-heading p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.result-diagnosis {
+  margin: 34px 0 18px;
+  padding: 28px;
+  border: 1px solid rgba(94, 234, 212, 0.22);
+  background: rgba(94, 234, 212, 0.035);
+}
+
+.result-diagnosis > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.result-diagnosis blockquote {
+  max-width: 980px;
+  margin: 15px 0 24px;
+  font-size: clamp(20px, 3vw, 36px);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.result-diagnosis > div {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.result-diagnosis strong {
+  color: var(--cyan-bright);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.result-diagnosis div > span {
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: right;
+}
+
+.result-diagnosis small,
+.confidence-line small {
+  display: block;
+  margin-top: 3px;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.result-score {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 18px;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.result-score > div {
+  min-height: 108px;
+  padding: 24px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.result-score span,
+.result-score strong {
+  display: block;
+}
+
+.result-score span {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.result-score strong {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: clamp(19px, 2.5vw, 30px);
+}
+
+.result-actions,
+.result-next-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.result-actions button,
+.result-next-actions button {
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  background: var(--surface-raised);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.result-actions .primary-action,
+.result-next-actions .continue-action {
+  border-color: var(--cyan);
+  color: var(--bg);
+  background: var(--cyan);
+}
+
+.result-next-actions .retry-action {
+  margin-left: auto;
+  border-color: rgba(255, 142, 129, 0.3);
+  color: var(--red);
+}
+
+.share-status {
+  min-height: 20px;
+  margin: 10px 0 18px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+button:disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .card-heading {
@@ -1230,6 +1562,15 @@ footer a {
   .experts-card {
     grid-column: span 8;
   }
+
+  .lab-grid .regret-card,
+  .lab-grid .transition-card {
+    grid-column: span 6;
+  }
+
+  .lab-grid .settings-card {
+    grid-column: span 4;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1253,7 +1594,7 @@ footer a {
   }
 
   .hero h1 {
-    font-size: clamp(54px, 17vw, 88px);
+    font-size: clamp(46px, 13.5vw, 72px);
   }
 
   .hero-copy {
@@ -1262,6 +1603,57 @@ footer a {
 
   .dashboard-grid {
     display: block;
+  }
+
+  .view-tabs {
+    width: 100%;
+  }
+
+  .challenge-progress {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 24px 20px;
+  }
+
+  .lab-intro {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 24px 20px;
+  }
+
+  .diagnosis-return {
+    width: 100%;
+  }
+
+  .challenge-result {
+    padding: 26px 20px;
+  }
+
+  .result-diagnosis {
+    padding: 20px;
+  }
+
+  .result-score {
+    grid-template-columns: 1fr;
+  }
+
+  .result-score > div {
+    min-height: 82px;
+  }
+
+  .result-actions,
+  .result-next-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .result-actions button,
+  .result-next-actions button {
+    width: 100%;
+  }
+
+  .result-next-actions .retry-action {
+    margin-left: 0;
   }
 
   .card {
@@ -1280,7 +1672,7 @@ footer a {
   }
 
   .hand-button {
-    min-height: 126px;
+    min-height: 116px;
   }
 
   .hand-emoji {
@@ -1321,7 +1713,7 @@ footer a {
   }
 
   .hand-button {
-    min-height: 112px;
+    min-height: 104px;
   }
 
   .hand-key {
