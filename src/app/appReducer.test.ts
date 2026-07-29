@@ -106,6 +106,10 @@ describe("application reducer", () => {
     expect(blocked.learningStats.totalRounds).toBe(50);
 
     const continued = appReducer(state, { type: "continue-challenge" });
+    const reopened = appReducer(continued, { type: "show-challenge-result" });
+    expect(reopened.challenge.status).toBe("result");
+    expect(reopened.challenge.result).toEqual(frozenResult);
+
     const round51 = appReducer(continued, {
       type: "play",
       humanHand: "rock",

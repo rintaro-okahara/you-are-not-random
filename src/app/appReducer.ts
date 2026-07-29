@@ -31,6 +31,7 @@ export type AppAction =
   | { readonly type: "set-alpha"; readonly alpha: number }
   | { readonly type: "set-view"; readonly view: "play" | "lab" }
   | { readonly type: "continue-challenge" }
+  | { readonly type: "show-challenge-result" }
   | { readonly type: "retry-challenge"; readonly random?: RandomSource }
   | { readonly type: "reset"; readonly random?: RandomSource };
 
@@ -98,6 +99,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         challenge: continueChallenge(state.challenge),
       };
+    case "show-challenge-result":
+      return state.challenge.result === null
+        ? state
+        : {
+            ...state,
+            activeView: "play",
+            challenge: { ...state.challenge, status: "result" },
+          };
     case "retry-challenge": {
       const defaults: PersistedAppState = {
         ...DEFAULT_PERSISTED_STATE,

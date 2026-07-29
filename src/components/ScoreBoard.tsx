@@ -3,9 +3,15 @@ import { formatPercent } from "./format";
 
 interface ScoreBoardProps {
   readonly stats: AggregateStats;
+  readonly title?: string;
+  readonly eyebrow?: string;
 }
 
-export function ScoreBoard({ stats }: ScoreBoardProps) {
+export function ScoreBoard({
+  stats,
+  title = "累積成績",
+  eyebrow = "MATCH TELEMETRY",
+}: ScoreBoardProps) {
   const streak =
     stats.streakKind === "ai-win"
       ? `AI ${stats.streakCount}連勝`
@@ -17,8 +23,8 @@ export function ScoreBoard({ stats }: ScoreBoardProps) {
     <section className="card score-card" aria-labelledby="score-title">
       <div className="card-heading compact">
         <div>
-          <p className="eyebrow">MATCH TELEMETRY</p>
-          <h2 id="score-title">累積成績</h2>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2 id="score-title">{title}</h2>
         </div>
         <span className="round-count">{stats.totalRounds} ROUNDS</span>
       </div>
