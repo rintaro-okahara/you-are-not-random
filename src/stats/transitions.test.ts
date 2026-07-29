@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { buildLearningStats, createLearningStats } from "../learning/learningStats";
 import { historyFromHands } from "../test/testHelpers";
 import { calculateTransitions } from "./transitions";
 
 describe("first-order human transition matrix", () => {
   it("starts with uniform Laplace-smoothed rows and zero samples", () => {
-    const result = calculateTransitions([]);
+    const result = calculateTransitions(createLearningStats());
     expect(result).toHaveLength(3);
     for (const row of result) {
       expect(row.sampleCount).toBe(0);
@@ -16,7 +17,9 @@ describe("first-order human transition matrix", () => {
 
   it("counts transitions by previous-hand row with Laplace smoothing", () => {
     const result = calculateTransitions(
-      historyFromHands("rock", "paper", "rock", "paper", "scissors"),
+      buildLearningStats(
+        historyFromHands("rock", "paper", "rock", "paper", "scissors"),
+      ),
     );
     const rockRow = result[0];
     expect(rockRow?.fromHand).toBe("rock");

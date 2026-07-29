@@ -14,10 +14,16 @@ import {
   uniformWeights,
   updateFixedShare,
 } from "../learning/hedge";
+import {
+  updateLearningStats,
+  type LearningStats,
+} from "../learning/learningStats";
 import { predictedHumanToAiDistribution } from "../learning/prediction";
+import {
+  updateRegretStats,
+  type RegretStats,
+} from "../learning/regret";
 import { sampleHand, type RandomSource, secureRandom } from "./sampling";
-
-export const MAX_HISTORY = 2_000;
 
 export interface PendingRound {
   readonly aiHand: Hand;
@@ -30,7 +36,8 @@ export interface PendingRound {
 export interface PlayRoundOptions {
   readonly pending: PendingRound;
   readonly humanHand: Hand;
-  readonly history: readonly RoundRecord[];
+  readonly learningStats: LearningStats;
+  readonly regretStats: RegretStats;
   readonly alpha: number;
   readonly eta?: number;
   readonly now?: () => number;
@@ -39,8 +46,9 @@ export interface PlayRoundOptions {
 
 export interface PlayRoundResult {
   readonly record: RoundRecord;
-  readonly history: readonly RoundRecord[];
   readonly nextWeights: readonly number[];
+  readonly nextLearningStats: LearningStats;
+  readonly nextRegretStats: RegretStats;
 }
 
 function safeWeights(weights: readonly number[]): readonly number[] {
@@ -50,14 +58,14 @@ function safeWeights(weights: readonly number[]): readonly number[] {
 }
 
 export function preparePendingRound(
-  history: readonly RoundRecord[],
+  learningStats: LearningStats,
   expertWeights: readonly number[],
   learningEnabled: boolean,
   random: RandomSource = secureRandom,
 ): PendingRound {
   const weights = safeWeights(expertWeights);
   const expertActionDistributions = EXPERTS.map((expert) =>
-    predictedHumanToAiDistribution(expert.predictHuman(history)),
+    predictedHumanToAiDistribution(expert.predictHuman(learningStats)),
   );
   const aiDistribution = learningEnabled
     ? mixDistributions(weights, expertActionDistributions)
@@ -82,7 +90,8 @@ function defaultId(): string {
 export function playPendingRound({
   pending,
   humanHand,
-  history,
+  learningStats,
+  regretStats,
   alpha,
   eta = DEFAULT_ETA,
   now = Date.now,
@@ -121,7 +130,8 @@ export function playPendingRound({
 
   return {
     record,
-    history: [...history, record].slice(-MAX_HISTORY),
     nextWeights,
+    nextLearningStats: updateLearningStats(learningStats, record),
+    nextRegretStats: updateRegretStats(regretStats, record),
   };
 }

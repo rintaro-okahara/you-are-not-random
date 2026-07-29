@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { buildLearningStats, createLearningStats } from "../learning/learningStats";
 import { makeRound } from "../test/testHelpers";
 import { aggregateStats } from "./aggregateStats";
 
 describe("aggregate match statistics", () => {
   it("uses zero-safe defaults before any round", () => {
-    expect(aggregateStats([])).toEqual({
+    expect(aggregateStats(createLearningStats())).toEqual({
       totalRounds: 0,
       aiWins: 0,
       humanWins: 0,
@@ -26,7 +27,7 @@ describe("aggregate match statistics", () => {
       makeRound("rock", { actualReward: -1 }),
       makeRound("rock", { actualReward: -1 }),
     ];
-    const result = aggregateStats(history);
+    const result = aggregateStats(buildLearningStats(history));
     expect(result.totalRounds).toBe(13);
     expect(result.aiWins).toBe(9);
     expect(result.humanWins).toBe(3);

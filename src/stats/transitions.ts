@@ -1,6 +1,10 @@
-import { HANDS, handToIndex } from "../domain/rps";
+import { HANDS } from "../domain/rps";
 import { normalizeProbability } from "../domain/probability";
-import type { Hand, ProbabilityVector, RoundRecord } from "../domain/types";
+import type { Hand, ProbabilityVector } from "../domain/types";
+import {
+  getMarkovCounts,
+  type LearningStats,
+} from "../learning/learningStats";
 
 export interface TransitionRow {
   readonly fromHand: Hand;
@@ -9,29 +13,18 @@ export interface TransitionRow {
 }
 
 export function calculateTransitions(
-  history: readonly RoundRecord[],
+  stats: LearningStats,
 ): readonly TransitionRow[] {
-  const counts = HANDS.map(() => [1, 1, 1] as [number, number, number]);
-  const sampleCounts = HANDS.map(() => 0);
-
-  for (let index = 1; index < history.length; index += 1) {
-    const previous = history[index - 1]?.humanHand;
-    const next = history[index]?.humanHand;
-    if (previous === undefined || next === undefined) {
-      continue;
-    }
-    const fromIndex = handToIndex(previous);
-    const toIndex = handToIndex(next);
-    const row = counts[fromIndex];
-    if (row !== undefined) {
-      row[toIndex] += 1;
-    }
-    sampleCounts[fromIndex] = (sampleCounts[fromIndex] ?? 0) + 1;
-  }
-
-  return HANDS.map((fromHand, index) => ({
-    fromHand,
-    probabilities: normalizeProbability(counts[index] ?? [1, 1, 1]),
-    sampleCount: sampleCounts[index] ?? 0,
-  }));
+  return HANDS.map((fromHand) => {
+    const counts = getMarkovCounts(stats, [fromHand]);
+    return {
+      fromHand,
+      probabilities: normalizeProbability([
+        counts[0] + 1,
+        counts[1] + 1,
+        counts[2] + 1,
+      ]),
+      sampleCount: counts[0] + counts[1] + counts[2],
+    };
+  });
 }

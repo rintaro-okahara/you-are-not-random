@@ -8,6 +8,8 @@ import {
   type AppState,
 } from "./initialState";
 
+export const RECENT_HISTORY_LIMIT = 15;
+
 export type AppAction =
   | {
       readonly type: "play";
@@ -37,17 +39,22 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const result = playPendingRound({
         pending: state.pendingRound,
         humanHand: action.humanHand,
-        history: state.history,
+        learningStats: state.learningStats,
+        regretStats: state.regretStats,
         alpha: state.alpha,
         now: action.now,
         createId: action.createId,
       });
       return {
         ...state,
-        history: result.history,
+        recentHistory: [...state.recentHistory, result.record].slice(
+          -RECENT_HISTORY_LIMIT,
+        ),
+        learningStats: result.nextLearningStats,
+        regretStats: result.nextRegretStats,
         expertWeights: result.nextWeights,
         pendingRound: preparePendingRound(
-          result.history,
+          result.nextLearningStats,
           result.nextWeights,
           state.learningEnabled,
           action.random ?? secureRandom,
@@ -59,7 +66,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         learningEnabled: action.enabled,
         pendingRound: preparePendingRound(
-          state.history,
+          state.learningStats,
           state.expertWeights,
           action.enabled,
           action.random ?? secureRandom,
@@ -70,7 +77,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "reset": {
       const defaults: PersistedAppState = {
         ...DEFAULT_PERSISTED_STATE,
-        history: [],
+        recentHistory: [],
       };
       return createInitialState({
         persisted: defaults,

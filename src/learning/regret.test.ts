@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { makeRound } from "../test/testHelpers";
-import { calculateRegret } from "./regret";
+import {
+  calculateRegret,
+  createRegretStats,
+  summarizeRegret,
+  updateRegretStats,
+} from "./regret";
 
 describe("empirical best-fixed-expert regret", () => {
   it("matches a hand-calculated two-round example", () => {
@@ -48,5 +53,36 @@ describe("empirical best-fixed-expert regret", () => {
     ]);
     expect(result.learningRounds).toBe(0);
     expect(result.perRoundRegret).toBe(0);
+  });
+
+  it("incrementally matches the history-based reference calculation", () => {
+    const rounds = [
+      makeRound("rock", {
+        expertWeightsBefore: [0.5, 0.5],
+        expertRewards: [1, 0],
+      }),
+      makeRound("paper", {
+        expertWeightsBefore: [0.5, 0.5],
+        expertRewards: [-1, 1],
+      }),
+    ];
+    const incremental = rounds.reduce(
+      updateRegretStats,
+      createRegretStats(2),
+    );
+    expect(summarizeRegret(incremental)).toEqual(calculateRegret(rounds));
+  });
+
+  it("does not update its accumulator while learning is disabled", () => {
+    const initial = createRegretStats(2);
+    const result = updateRegretStats(
+      initial,
+      makeRound("rock", {
+        learningEnabled: false,
+        expertWeightsBefore: [0.5, 0.5],
+        expertRewards: [1, -1],
+      }),
+    );
+    expect(result).toBe(initial);
   });
 });

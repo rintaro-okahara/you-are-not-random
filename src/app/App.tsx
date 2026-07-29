@@ -9,7 +9,7 @@ import { SettingsPanel } from "../components/SettingsPanel";
 import { TransitionMatrix } from "../components/TransitionMatrix";
 import { type RandomSource, secureRandom } from "../engine/sampling";
 import { EXPERTS } from "../learning/experts";
-import { calculateRegret } from "../learning/regret";
+import { summarizeRegret } from "../learning/regret";
 import { aggregateStats } from "../stats/aggregateStats";
 import { calculateTransitions } from "../stats/transitions";
 import {
@@ -30,14 +30,17 @@ export function App({ random = secureRandom }: AppProps) {
     undefined,
     () => createInitialState({ random }),
   );
-  const stats = useMemo(() => aggregateStats(state.history), [state.history]);
+  const stats = useMemo(
+    () => aggregateStats(state.learningStats),
+    [state.learningStats],
+  );
   const transitions = useMemo(
-    () => calculateTransitions(state.history),
-    [state.history],
+    () => calculateTransitions(state.learningStats),
+    [state.learningStats],
   );
   const regret = useMemo(
-    () => calculateRegret(state.history),
-    [state.history],
+    () => summarizeRegret(state.regretStats),
+    [state.regretStats],
   );
   const bestExpertName =
     regret.bestExpertIndex === null
@@ -107,7 +110,7 @@ export function App({ random = secureRandom }: AppProps) {
 
         <div className="dashboard-grid">
           <GamePanel
-            lastRound={state.history.at(-1)}
+            lastRound={state.recentHistory.at(-1)}
             learningEnabled={state.learningEnabled}
             onPlay={(humanHand) =>
               dispatch({ type: "play", humanHand, random })
@@ -116,7 +119,7 @@ export function App({ random = secureRandom }: AppProps) {
           <ScoreBoard stats={stats} />
           <CurrentSuspicion
             weights={state.expertWeights}
-            roundCount={state.history.length}
+            roundCount={state.learningStats.totalRounds}
           />
           <RegretPanel summary={regret} bestExpertName={bestExpertName} />
           <TransitionMatrix rows={transitions} />
@@ -133,7 +136,10 @@ export function App({ random = secureRandom }: AppProps) {
             weights={state.expertWeights}
             cumulativeRewards={regret.expertCumulativeRewards}
           />
-          <HistoryPanel history={state.history} />
+          <HistoryPanel
+            history={state.recentHistory}
+            totalRounds={state.learningStats.totalRounds}
+          />
         </div>
       </main>
 

@@ -18,11 +18,3 @@ export interface RoundRecord {
   readonly actualReward: Reward;
   readonly learningEnabled: boolean;
 }
-
-export interface Expert {
-  readonly id: string;
-  readonly name: string;
-  readonly shortDescription: string;
-  readonly suspicionText: string;
-  predictHuman(history: readonly RoundRecord[]): ProbabilityVector;
-}

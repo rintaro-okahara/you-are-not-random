@@ -4,7 +4,7 @@ import {
   cycleForward,
 } from "../domain/rps";
 import { UNIFORM_PROBABILITY } from "../domain/probability";
-import type { Expert, ProbabilityVector, RoundRecord } from "../domain/types";
+import type { ProbabilityVector } from "../domain/types";
 import {
   buildExpert,
   decayedFrequency,
@@ -16,13 +16,18 @@ import {
   repeatedTailLength,
   smoothedHandPrediction,
 } from "./expertHelpers";
+import type {
+  LastRoundSummary,
+  LearningStats,
+} from "./learningStats";
+import type { Expert } from "./types";
 
-const fallback = (history: readonly RoundRecord[]) => laplaceFrequency(history);
+const fallback = (stats: LearningStats) => laplaceFrequency(stats);
 
 function whenLastRound(
-  history: readonly RoundRecord[],
-  condition: (round: RoundRecord) => boolean,
-  prediction: (round: RoundRecord) => ProbabilityVector,
+  history: LearningStats,
+  condition: (round: LastRoundSummary) => boolean,
+  prediction: (round: LastRoundSummary) => ProbabilityVector,
 ): ProbabilityVector {
   const previous = lastRound(history);
   return previous !== undefined && condition(previous)
@@ -71,7 +76,7 @@ export const EXPERTS: readonly Expert[] = [
     "Exponentially Decayed Frequency",
     "新しい観測を重視する頻度",
     "最近よく出した手を重ねる傾向を疑っています",
-    (history) => decayedFrequency(history, 0.85),
+    (history) => decayedFrequency(history),
   ),
   buildExpert(
     "repeat-last",

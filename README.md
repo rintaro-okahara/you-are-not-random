@@ -26,7 +26,8 @@ AIは単なる周辺頻度だけでなく、「勝った手を繰り返す」「
 - 学習OFF時は一様ランダム、重みは凍結（履歴と勝敗は保存）
 - best fixed expertに対する経験的regret
 - Laplace smoothing済みの一次Markov遷移行列
-- 最新2,000ラウンド、expert重み、設定をlocalStorageへ保存
+- 最新2,000ラウンドを循環スロットへ、共有統計・expert重み・設定を固定サイズの
+  メタデータへ分けてlocalStorageへ保存
 - 壊れたJSONや未知schema versionから安全に初期状態へ復旧
 - キーボード操作、明示的なfocus、text併記、reduced motion対応
 - バックエンド、LLM API、外部DB、状態管理ライブラリ、chartライブラリなし
@@ -82,14 +83,14 @@ Vercelでこのリポジトリをimportし、Framework Presetを **Vite** にし
 現在ラウンドのAI分布を先に表示すると、人間がそれを見て手を変えられ、
 学習対象と評価条件が変わってしまいます。そのため、次の順序を守ります。
 
-1. 完了済み履歴だけを24 expertへ渡す
+1. 完了済みラウンドからインクリメンタル更新した共有統計だけを24 expertへ渡す
 2. 各expertの人間予測をAI行動分布へ変換する
 3. expert重みで混合する
 4. 混合分布からAIの手を内部でサンプリングする
 5. 人間が手を選ぶ
 6. 使用済みのAIの手と分布を公開する
 7. 全3行動の報酬が判明するので、全expertを同時に採点する
-8. Hedge / Fixed Shareを更新し、履歴を保存する
+8. Hedge / Fixed Share、共有統計、regret統計を1回だけ更新し、ラウンドを保存する
 9. 次ラウンドを非公開で準備する
 
 React stateには内部のpending roundがありますが、その分布は人間の選択前には
@@ -163,6 +164,24 @@ $$
 Markovは該当contextが2件未満なら
 `order 3 → order 2 → order 1 → global → uniform` の順でbackoffします。
 
+## Incremental statistics and complexity
+
+毎ラウンド、全履歴をexpertごとに再走査しません。次の情報を共有状態として
+1回だけ更新し、24 expert、成績、遷移行列、regret表示から参照します。
+
+- 全期間・直近5/10/20戦・指数減衰の手の回数
+- 1〜3次Markovのcontext別回数
+- 直近20手、直近10勝敗、直前ラウンド、手と勝敗のstreak
+- 累積勝敗とexpert別累積報酬
+
+expert数を $N$、Markovの最大次数と各window長をこのアプリの定数とすると、
+予測、full-information採点、Hedge / Fixed Share、regret更新を含む
+1ラウンドの計算量は $\Theta(N)$、対戦履歴の長さに対しては $O(1)$ です。
+React stateが保持する表示用履歴も直近15件に制限しています。
+
+学習率はadaptiveにせず `η = 0.25` 固定です。Fixed Shareの `α` も従来どおり
+画面から手動設定します。
+
 ## Hedge and full information
 
 expert `e` の現在重みを $\pi_{t,e}$、そのexpertから作ったAI行動分布を
@@ -234,18 +253,20 @@ $$
 
 ## localStorage
 
-keyは `you-are-not-random:v1` です。次をschema version 1として保存します。
+メタデータkeyは `you-are-not-random:v2`、schema versionは2です。共有統計、
+regret統計、現在の24 expert重み、`α`、学習ON/OFFを、履歴長に依存しない
+メタデータとして保存します。
 
-- 最新2,000ラウンドの履歴
-- 現在の24 expert重み
-- 忘却率 `α`
-- 学習ON/OFF
-- schema version
+各ラウンドは `you-are-not-random:v2:round:0`〜`:1999` の2,000スロットへ
+循環保存します。通常の1ラウンドでは新しいラウンド1件と固定サイズのメタデータ
+だけをserializeするため、全履歴の `JSON.stringify` は発生しません。起動時に
+React stateへ復元する表示用履歴は最新15件だけです。
 
 各ラウンドには、人間とAIの手、使用済みAI分布、更新前expert重み、全expert報酬、
 AIの期待報酬、実際の報酬、学習状態、ID、timestampを保存します。
 壊れたJSON、未知version、非有限値、長さが異なるvectorはcache missとして扱い、
-アプリを初期状態で起動します。
+アプリを初期状態で起動します。旧schema version 1の保存データは移行せず、
+初期状態から開始します。
 
 ## Limitations
 
@@ -268,7 +289,7 @@ src/
   components/  accessible dashboard cards
   domain/      canonical hands, payoffs, probability types
   engine/      private pending-round protocol and sampling
-  learning/    experts, prediction, Hedge, Fixed Share, regret
+  learning/    shared incremental stats, experts, Hedge, Fixed Share, regret
   stats/       aggregate match stats and Markov transitions
   storage/     versioned localStorage adapter
   styles/      responsive dark visual system

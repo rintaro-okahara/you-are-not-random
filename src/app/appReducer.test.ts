@@ -18,7 +18,7 @@ describe("application reducer", () => {
     expect(state.pendingRound.expertActionDistributions).toHaveLength(
       EXPERTS.length,
     );
-    expect(state.history).toEqual([]);
+    expect(state.recentHistory).toEqual([]);
   });
 
   it("plays the pending round and prepares the next one", () => {
@@ -28,8 +28,8 @@ describe("application reducer", () => {
       humanHand: "paper",
       random: () => 0.999,
     });
-    expect(after.history).toHaveLength(1);
-    expect(after.history[0]?.aiHand).toBe("rock");
+    expect(after.recentHistory).toHaveLength(1);
+    expect(after.recentHistory[0]?.aiHand).toBe("rock");
     expect(after.pendingRound.aiHand).toBe("scissors");
   });
 
@@ -59,10 +59,26 @@ describe("application reducer", () => {
       type: "reset",
       random: zeroRandom,
     });
-    expect(reset.history).toEqual([]);
+    expect(reset.recentHistory).toEqual([]);
     expect(reset.alpha).toBe(DEFAULT_ALPHA);
     expect(reset.learningEnabled).toBe(true);
     expect(reset.expertWeights).toEqual(uniformWeights(EXPERTS.length));
     expect(reset.pendingRound.aiHand).toBe("rock");
+  });
+
+  it("keeps 15 display rounds while aggregates continue incrementally", () => {
+    let state = createInitialState({ random: zeroRandom });
+    for (let round = 0; round < 20; round += 1) {
+      state = appReducer(state, {
+        type: "play",
+        humanHand: "rock",
+        random: zeroRandom,
+        createId: () => `round-${round}`,
+      });
+    }
+    expect(state.recentHistory).toHaveLength(15);
+    expect(state.recentHistory[0]?.id).toBe("round-5");
+    expect(state.learningStats.totalRounds).toBe(20);
+    expect(state.regretStats.learningRounds).toBe(20);
   });
 });

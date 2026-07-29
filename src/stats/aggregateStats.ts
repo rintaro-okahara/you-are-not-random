@@ -1,4 +1,4 @@
-import type { RoundRecord } from "../domain/types";
+import type { LearningStats } from "../learning/learningStats";
 
 export interface AggregateStats {
   readonly totalRounds: number;
@@ -12,40 +12,29 @@ export interface AggregateStats {
 }
 
 export function aggregateStats(
-  history: readonly RoundRecord[],
+  stats: LearningStats,
 ): AggregateStats {
-  const aiWins = history.filter((round) => round.actualReward === 1).length;
-  const humanWins = history.filter((round) => round.actualReward === -1).length;
-  const draws = history.length - aiWins - humanWins;
-  const recent = history.slice(-10);
-  const recentAiWins = recent.filter(
-    (round) => round.actualReward === 1,
+  const recentAiWins = stats.recentRewards.filter(
+    (reward) => reward === 1,
   ).length;
-  const latestReward = history.at(-1)?.actualReward;
-
-  let streakCount = 0;
-  if (latestReward === 1 || latestReward === -1) {
-    for (let index = history.length - 1; index >= 0; index -= 1) {
-      if (history[index]?.actualReward !== latestReward) {
-        break;
-      }
-      streakCount += 1;
-    }
-  }
 
   return {
-    totalRounds: history.length,
-    aiWins,
-    humanWins,
-    draws,
-    aiWinRate: history.length === 0 ? 0 : aiWins / history.length,
-    recentAiWinRate: recent.length === 0 ? 0 : recentAiWins / recent.length,
+    totalRounds: stats.totalRounds,
+    aiWins: stats.aiWins,
+    humanWins: stats.humanWins,
+    draws: stats.draws,
+    aiWinRate:
+      stats.totalRounds === 0 ? 0 : stats.aiWins / stats.totalRounds,
+    recentAiWinRate:
+      stats.recentRewards.length === 0
+        ? 0
+        : recentAiWins / stats.recentRewards.length,
     streakKind:
-      latestReward === 1
+      stats.resultStreakReward === 1
         ? "ai-win"
-        : latestReward === -1
+        : stats.resultStreakReward === -1
           ? "human-win"
           : "none",
-    streakCount,
+    streakCount: stats.resultStreakCount,
   };
 }

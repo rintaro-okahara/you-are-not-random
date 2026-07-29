@@ -5,6 +5,7 @@ import { formatPercent, handLabel, resultLabel } from "./format";
 
 interface HistoryPanelProps {
   readonly history: readonly RoundRecord[];
+  readonly totalRounds: number;
 }
 
 function topExpertName(round: RoundRecord): string {
@@ -17,10 +18,10 @@ function topExpertName(round: RoundRecord): string {
   return EXPERTS[best]?.name ?? "Uniform";
 }
 
-export function HistoryPanel({ history }: HistoryPanelProps) {
+export function HistoryPanel({ history, totalRounds }: HistoryPanelProps) {
   const recent = history.slice(-15).map((round, offset) => ({
     round,
-    number: history.length - Math.min(15, history.length) + offset + 1,
+    number: totalRounds - Math.min(15, history.length) + offset + 1,
   })).reverse();
 
   return (
@@ -30,7 +31,9 @@ export function HistoryPanel({ history }: HistoryPanelProps) {
           <p className="eyebrow">ROUND LOG / LAST 15</p>
           <h2 id="history-title">直近の履歴</h2>
         </div>
-        <span className="heading-note">{history.length}件を保存中</span>
+        <span className="heading-note">
+          全{totalRounds}戦 / 最新2,000件を保存
+        </span>
       </div>
       {recent.length === 0 ? (
         <div className="empty-state">

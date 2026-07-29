@@ -7,12 +7,22 @@ import { type RandomSource, secureRandom } from "../engine/sampling";
 import { EXPERTS } from "../learning/experts";
 import { DEFAULT_ALPHA, uniformWeights } from "../learning/hedge";
 import {
+  createLearningStats,
+  type LearningStats,
+} from "../learning/learningStats";
+import {
+  createRegretStats,
+  type RegretStats,
+} from "../learning/regret";
+import {
   loadState,
   type PersistedAppState,
 } from "../storage/localStorage";
 
 export interface AppState {
-  readonly history: readonly RoundRecord[];
+  readonly recentHistory: readonly RoundRecord[];
+  readonly learningStats: LearningStats;
+  readonly regretStats: RegretStats;
   readonly expertWeights: readonly number[];
   readonly alpha: number;
   readonly learningEnabled: boolean;
@@ -20,7 +30,9 @@ export interface AppState {
 }
 
 export const DEFAULT_PERSISTED_STATE: PersistedAppState = {
-  history: [],
+  recentHistory: [],
+  learningStats: createLearningStats(),
+  regretStats: createRegretStats(EXPERTS.length),
   expertWeights: uniformWeights(EXPERTS.length),
   alpha: DEFAULT_ALPHA,
   learningEnabled: true,
@@ -39,7 +51,7 @@ export function createInitialState(
   return {
     ...persisted,
     pendingRound: preparePendingRound(
-      persisted.history,
+      persisted.learningStats,
       persisted.expertWeights,
       persisted.learningEnabled,
       random,
@@ -49,7 +61,9 @@ export function createInitialState(
 
 export function toPersistedState(state: AppState): PersistedAppState {
   return {
-    history: state.history,
+    recentHistory: state.recentHistory,
+    learningStats: state.learningStats,
+    regretStats: state.regretStats,
     expertWeights: state.expertWeights,
     alpha: state.alpha,
     learningEnabled: state.learningEnabled,
