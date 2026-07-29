@@ -6,6 +6,7 @@ import { formatPercent, handLabel, resultLabel } from "./format";
 interface GamePanelProps {
   readonly lastRound: RoundRecord | undefined;
   readonly learningEnabled: boolean;
+  readonly disabled?: boolean;
   readonly onPlay: (hand: Hand) => void;
 }
 
@@ -20,6 +21,7 @@ function highestWeightIndex(weights: readonly number[]): number {
 export function GamePanel({
   lastRound,
   learningEnabled,
+  disabled = false,
   onPlay,
 }: GamePanelProps) {
   const topExpert =
@@ -53,6 +55,7 @@ export function GamePanel({
             type="button"
             key={hand}
             aria-label={`${handLabel(hand)}を出す`}
+            disabled={disabled}
             onClick={() => onPlay(hand)}
           >
             <span className="hand-key" aria-hidden="true">

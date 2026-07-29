@@ -16,8 +16,7 @@ export function CurrentSuspicion({
   })).sort((left, right) => right.weight - left.weight);
   const top = ranked[0];
   const uniformWeight = 1 / EXPERTS.length;
-  const uncertain =
-    roundCount < 3 || (top?.weight ?? 0) < uniformWeight * 1.2;
+  const uncertain = roundCount < 8;
 
   return (
     <section className="card suspicion-card" aria-labelledby="suspicion-title">
@@ -38,7 +37,10 @@ export function CurrentSuspicion({
             : `「${top?.expert.suspicionText ?? ""}」`}
         </blockquote>
         <div className="confidence-line">
-          <span>信頼度</span>
+          <span>
+            現在の支持度
+            <small>Hedge weight</small>
+          </span>
           <strong>{formatPercent(top?.weight ?? uniformWeight)}</strong>
           <span className="bar-track">
             <span
