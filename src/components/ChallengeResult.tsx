@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChallengeResult as ChallengeResultData } from "../challenge/challenge";
+import {
+  resultOutcome,
+  type ChallengeResult as ChallengeResultData,
+} from "../challenge/challenge";
 import {
   copyResultText,
+  createXShareUrl,
   downloadResult,
   shareResult,
 } from "../sharing/resultCard";
 import { formatPercent } from "./format";
+import { VictoryCelebration } from "./VictoryCelebration";
 
 interface ChallengeResultProps {
   readonly result: ChallengeResultData;
+  readonly celebrate?: boolean;
   readonly onContinue: () => void;
   readonly onRetry: () => void;
   readonly onOpenLab: () => void;
@@ -25,6 +31,7 @@ function errorMessage(error: unknown): string {
 
 export function ChallengeResult({
   result,
+  celebrate = false,
   onContinue,
   onRetry,
   onOpenLab,
@@ -54,19 +61,39 @@ export function ChallengeResult({
   };
 
   const currentUrl = window.location.href;
+  const xShareUrl = createXShareUrl(result, currentUrl);
+  const outcome = resultOutcome(result);
+  const isHumanVictory = outcome === "human-victory";
 
   return (
     <section
-      className="card challenge-result"
+      className={`card challenge-result result-${outcome}`}
       aria-labelledby="result-title"
     >
       <div className="result-heading">
-        <p className="eyebrow">ANALYSIS COMPLETE / 50 ROUNDS</p>
+        <p className="eyebrow">
+          {isHumanVictory
+            ? "50 ROUNDS COMPLETE / HUMAN VICTORY"
+            : "ANALYSIS COMPLETE / 50 ROUNDS"}
+        </p>
         <h2 id="result-title" ref={titleRef} tabIndex={-1}>
-          分析完了
+          {isHumanVictory ? "HUMAN VICTORY" : "分析完了"}
         </h2>
-        <p>あなたの50戦から、AIが最も強く支持した仮説です。</p>
+        <p>
+          {isHumanVictory
+            ? "勝利不能、ではなかった。"
+            : "あなたの50戦から、AIが最も強く支持した仮説です。"}
+        </p>
       </div>
+
+      {isHumanVictory && (
+        <VictoryCelebration
+          active={celebrate}
+          humanWins={result.humanWins}
+          aiWins={result.aiWins}
+          draws={result.draws}
+        />
+      )}
 
       <div className="result-diagnosis">
         <span>AIが最も強く疑った仮説</span>
@@ -80,24 +107,34 @@ export function ChallengeResult({
         </div>
       </div>
 
-      <div className="result-score" aria-label="50戦の成績">
-        <div>
-          <span>YOU</span>
-          <strong>あなた {result.humanWins}勝</strong>
+      {!isHumanVictory && (
+        <div className="result-score" aria-label="50戦の成績">
+          <div>
+            <span>YOU</span>
+            <strong>あなた {result.humanWins}勝</strong>
+          </div>
+          <div>
+            <span>AI</span>
+            <strong>AI {result.aiWins}勝</strong>
+          </div>
+          <div>
+            <span>DRAW</span>
+            <strong>{result.draws}分</strong>
+          </div>
         </div>
-        <div>
-          <span>AI</span>
-          <strong>AI {result.aiWins}勝</strong>
-        </div>
-        <div>
-          <span>DRAW</span>
-          <strong>{result.draws}分</strong>
-        </div>
-      </div>
+      )}
 
       <div className="result-actions">
+        <a
+          className="primary-action x-share-action"
+          href={xShareUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Xでシェア
+          <span className="sr-only">（新しいタブで開きます）</span>
+        </a>
         <button
-          className="primary-action"
           type="button"
           disabled={busy}
           onClick={() =>
@@ -107,7 +144,7 @@ export function ChallengeResult({
             )
           }
         >
-          結果をシェア
+          画像付きでシェア
         </button>
         <button
           type="button"
@@ -116,7 +153,7 @@ export function ChallengeResult({
             void run(() => downloadResult(result), "画像を保存しました。")
           }
         >
-          画像を保存
+          結果画像を保存
         </button>
         <button
           type="button"

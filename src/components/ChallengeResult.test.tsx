@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { ChallengeResult as ChallengeResultData } from "../challenge/challenge";
 
 const sharing = vi.hoisted(() => ({
+  createXShareUrl: vi.fn(
+    () => "https://x.com/intent/post?text=human-victory",
+  ),
   shareResult: vi.fn().mockResolvedValue(undefined),
   downloadResult: vi.fn().mockResolvedValue(undefined),
   copyResultText: vi.fn().mockResolvedValue(undefined),
@@ -24,7 +27,56 @@ const result: ChallengeResultData = {
   support: 0.4,
 };
 
+const humanVictory: ChallengeResultData = {
+  ...result,
+  aiWins: 19,
+  humanWins: 26,
+  draws: 5,
+};
+
 describe("ChallengeResult", () => {
+  it("turns a human win into the full victory result", () => {
+    render(
+      <ChallengeResult
+        result={humanVictory}
+        celebrate
+        onContinue={() => undefined}
+        onRetry={() => undefined}
+        onOpenLab={() => undefined}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "HUMAN VICTORY" }),
+    ).toHaveFocus();
+    expect(screen.getByText("勝利不能、ではなかった。")).toBeVisible();
+    expect(
+      screen.getByText("VICTORY", { selector: ".victory-stamp" }),
+    ).toBeVisible();
+  });
+
+  it("exposes a safe direct X link before the other share actions", () => {
+    render(
+      <ChallengeResult
+        result={humanVictory}
+        onContinue={() => undefined}
+        onRetry={() => undefined}
+        onOpenLab={() => undefined}
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: /Xでシェア/ });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://x.com/intent/post?text=human-victory",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+    expect(
+      screen.getByRole("button", { name: "画像付きでシェア" }),
+    ).toBeVisible();
+  });
+
   it("focuses the completed diagnosis and exposes every next step", () => {
     render(
       <ChallengeResult
@@ -60,13 +112,17 @@ describe("ChallengeResult", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "結果をシェア" }));
+    await user.click(
+      screen.getByRole("button", { name: "画像付きでシェア" }),
+    );
     expect(sharing.shareResult).toHaveBeenCalled();
     expect(screen.getByRole("status")).toHaveTextContent(
       "共有メニューを開きました",
     );
 
-    await user.click(screen.getByRole("button", { name: "画像を保存" }));
+    await user.click(
+      screen.getByRole("button", { name: "結果画像を保存" }),
+    );
     expect(sharing.downloadResult).toHaveBeenCalledWith(result);
 
     await user.click(
