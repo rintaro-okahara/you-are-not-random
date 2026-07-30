@@ -20,6 +20,8 @@ interface ChallengeResultProps {
   readonly onOpenLab: () => void;
 }
 
+type ShareAction = "share" | "download" | "copy";
+
 function errorMessage(error: unknown): string {
   if (error instanceof DOMException && error.name === "AbortError") {
     return "共有をキャンセルしました。";
@@ -38,17 +40,20 @@ export function ChallengeResult({
 }: ChallengeResultProps) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [status, setStatus] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busyActions, setBusyActions] = useState<ReadonlySet<ShareAction>>(
+    () => new Set(),
+  );
 
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
 
   const run = async (
+    busyAction: ShareAction,
     action: () => Promise<void>,
     successMessage: string,
   ) => {
-    setBusy(true);
+    setBusyActions((current) => new Set(current).add(busyAction));
     setStatus("");
     try {
       await action();
@@ -56,7 +61,11 @@ export function ChallengeResult({
     } catch (error) {
       setStatus(errorMessage(error));
     } finally {
-      setBusy(false);
+      setBusyActions((current) => {
+        const next = new Set(current);
+        next.delete(busyAction);
+        return next;
+      });
     }
   };
 
@@ -64,6 +73,12 @@ export function ChallengeResult({
   const xShareUrl = createXShareUrl(result, currentUrl);
   const outcome = resultOutcome(result);
   const isHumanVictory = outcome === "human-victory";
+  const resultTitle =
+    outcome === "human-victory"
+      ? "HUMAN VICTORY"
+      : outcome === "ai-victory"
+        ? "AIが勝ち越し"
+        : "引き分け";
 
   return (
     <section
@@ -78,7 +93,7 @@ export function ChallengeResult({
             : "ANALYSIS COMPLETE / 50 ROUNDS"}
         </p>
         <h2 id="result-title" ref={titleRef} tabIndex={-1}>
-          {isHumanVictory ? "HUMAN VICTORY" : "分析完了"}
+          {resultTitle}
         </h2>
         <p>
           {isHumanVictory
@@ -137,9 +152,10 @@ export function ChallengeResult({
         </a>
         <button
           type="button"
-          disabled={busy}
+          disabled={busyActions.has("share")}
           onClick={() =>
             void run(
+              "share",
               () => shareResult(result, currentUrl),
               "共有メニューを開きました。",
             )
@@ -149,18 +165,23 @@ export function ChallengeResult({
         </button>
         <button
           type="button"
-          disabled={busy}
+          disabled={busyActions.has("download")}
           onClick={() =>
-            void run(() => downloadResult(result), "画像を保存しました。")
+            void run(
+              "download",
+              () => downloadResult(result),
+              "画像を保存しました。",
+            )
           }
         >
           結果画像を保存
         </button>
         <button
           type="button"
-          disabled={busy}
+          disabled={busyActions.has("copy")}
           onClick={() =>
             void run(
+              "copy",
               () => copyResultText(result, currentUrl),
               "投稿文をコピーしました。",
             )

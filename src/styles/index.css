@@ -1900,9 +1900,11 @@ footer a {
   }
 
   .victory-stamp {
-    top: 24px;
-    right: 18px;
+    position: relative;
+    top: auto;
+    right: auto;
     width: 70px;
+    margin: 20px 0 0 auto;
     font-size: 8px;
   }
 

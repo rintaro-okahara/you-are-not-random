@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ChallengeResult as ChallengeResultData } from "../challenge/challenge";
@@ -62,7 +62,7 @@ describe("ChallengeResult", () => {
   });
 
   it.each([
-    ["AI victory", result],
+    ["AI victory", result, "AIが勝ち越し"],
     [
       "draw",
       {
@@ -71,22 +71,24 @@ describe("ChallengeResult", () => {
         humanWins: 22,
         draws: 6,
       },
+      "引き分け",
     ],
-  ])("keeps the standard analysis result for %s", (_, standardResult) => {
-    render(
-      <ChallengeResult
-        result={standardResult}
-        onContinue={() => undefined}
-        onRetry={() => undefined}
-        onOpenLab={() => undefined}
-      />,
-    );
+  ])(
+    "uses an outcome-specific analysis heading for %s",
+    (_, standardResult, heading) => {
+      render(
+        <ChallengeResult
+          result={standardResult}
+          onContinue={() => undefined}
+          onRetry={() => undefined}
+          onOpenLab={() => undefined}
+        />,
+      );
 
-    expect(
-      screen.getByRole("heading", { name: "分析完了" }),
-    ).toHaveFocus();
-    expect(screen.queryByText("VICTORY")).toBeNull();
-  });
+      expect(screen.getByRole("heading", { name: heading })).toHaveFocus();
+      expect(screen.queryByText("VICTORY")).toBeNull();
+    },
+  );
 
   it("exposes a safe direct X link before the other share actions", () => {
     render(
@@ -121,7 +123,7 @@ describe("ChallengeResult", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "分析完了" }),
+      screen.getByRole("heading", { name: "AIが勝ち越し" }),
     ).toHaveFocus();
     expect(screen.getByText("あなた 18勝")).toBeVisible();
     expect(screen.getByText("AI 21勝")).toBeVisible();
@@ -162,6 +164,43 @@ describe("ChallengeResult", () => {
       screen.getByRole("button", { name: "投稿文をコピー" }),
     );
     expect(sharing.copyResultText).toHaveBeenCalled();
+  });
+
+  it("only disables the asynchronous share action currently in flight", async () => {
+    const user = userEvent.setup();
+    let finishShare: (() => void) | undefined;
+    sharing.shareResult.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishShare = resolve;
+      }),
+    );
+    render(
+      <ChallengeResult
+        result={result}
+        onContinue={() => undefined}
+        onRetry={() => undefined}
+        onOpenLab={() => undefined}
+      />,
+    );
+
+    const shareButton = screen.getByRole("button", {
+      name: "画像付きでシェア",
+    });
+    const downloadButton = screen.getByRole("button", {
+      name: "結果画像を保存",
+    });
+    const copyButton = screen.getByRole("button", {
+      name: "投稿文をコピー",
+    });
+
+    await user.click(shareButton);
+
+    expect(shareButton).toBeDisabled();
+    expect(downloadButton).toBeEnabled();
+    expect(copyButton).toBeEnabled();
+
+    finishShare?.();
+    await waitFor(() => expect(shareButton).toBeEnabled());
   });
 
   it("confirms before starting a new challenge", async () => {

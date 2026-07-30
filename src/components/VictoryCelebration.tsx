@@ -82,7 +82,6 @@ export function VictoryCelebration({
     >
       <div className="victory-effects" aria-hidden="true">
         <span className="victory-burst" />
-        <span className="victory-stamp">VICTORY</span>
         {showConfetti && (
           <span
             className="victory-confetti"
@@ -111,6 +110,9 @@ export function VictoryCelebration({
           </span>
         )}
       </div>
+      <span className="victory-stamp" aria-hidden="true">
+        VICTORY
+      </span>
 
       <div className="victory-score" aria-hidden="true">
         <div>

@@ -22,6 +22,9 @@ describe("VictoryCelebration", () => {
     expect(screen.getByText("19")).toBeVisible();
     expect(screen.getByText("5")).toBeVisible();
     expect(screen.queryByTestId("victory-confetti")).toBeNull();
+    expect(
+      screen.getByText("VICTORY").closest(".victory-effects"),
+    ).toBeNull();
   });
 
   it("removes active confetti after the entrance animation", () => {
