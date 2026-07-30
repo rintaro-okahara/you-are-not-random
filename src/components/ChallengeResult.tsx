@@ -69,6 +69,7 @@ export function ChallengeResult({
     <section
       className={`card challenge-result result-${outcome}`}
       aria-labelledby="result-title"
+      data-celebrate={celebrate ? "true" : undefined}
     >
       <div className="result-heading">
         <p className="eyebrow">

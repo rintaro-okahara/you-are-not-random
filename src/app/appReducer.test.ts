@@ -19,6 +19,7 @@ describe("application reducer", () => {
       EXPERTS.length,
     );
     expect(state.recentHistory).toEqual([]);
+    expect(state.celebrateVictory).toBe(false);
   });
 
   it("plays the pending round and prepares the next one", () => {
@@ -87,7 +88,7 @@ describe("application reducer", () => {
     for (let round = 0; round < 50; round += 1) {
       state = appReducer(state, {
         type: "play",
-        humanHand: "rock",
+        humanHand: "paper",
         random: zeroRandom,
         now: () => round,
         createId: () => `challenge-${round}`,
@@ -96,6 +97,7 @@ describe("application reducer", () => {
 
     expect(state.challenge.status).toBe("result");
     expect(state.challenge.result).not.toBeNull();
+    expect(state.celebrateVictory).toBe(true);
     const frozenResult = state.challenge.result;
 
     const blocked = appReducer(state, {
@@ -107,6 +109,8 @@ describe("application reducer", () => {
 
     const continued = appReducer(state, { type: "continue-challenge" });
     const reopened = appReducer(continued, { type: "show-challenge-result" });
+    expect(continued.celebrateVictory).toBe(false);
+    expect(reopened.celebrateVictory).toBe(false);
     expect(reopened.challenge.status).toBe("result");
     expect(reopened.challenge.result).toEqual(frozenResult);
 

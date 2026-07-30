@@ -3,6 +3,7 @@ import {
   advanceChallenge,
   continueChallenge,
   createChallengeState,
+  resultOutcome,
 } from "../challenge/challenge";
 import { playPendingRound, preparePendingRound } from "../engine/gameEngine";
 import { type RandomSource, secureRandom } from "../engine/sampling";
@@ -57,6 +58,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         now: action.now,
         createId: action.createId,
       });
+      const nextChallenge = advanceChallenge(
+        state.challenge,
+        result.nextLearningStats,
+        result.nextWeights,
+        result.record.timestamp,
+      );
       return {
         ...state,
         recentHistory: [...state.recentHistory, result.record].slice(
@@ -65,12 +72,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         learningStats: result.nextLearningStats,
         regretStats: result.nextRegretStats,
         expertWeights: result.nextWeights,
-        challenge: advanceChallenge(
-          state.challenge,
-          result.nextLearningStats,
-          result.nextWeights,
-          result.record.timestamp,
-        ),
+        challenge: nextChallenge,
+        celebrateVictory:
+          state.challenge.status === "active" &&
+          nextChallenge.status === "result" &&
+          nextChallenge.result !== null &&
+          resultOutcome(nextChallenge.result) === "human-victory",
         pendingRound: preparePendingRound(
           result.nextLearningStats,
           result.nextWeights,
@@ -82,6 +89,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "set-learning":
       return {
         ...state,
+        celebrateVictory: false,
         learningEnabled: action.enabled,
         pendingRound: preparePendingRound(
           state.learningStats,
@@ -91,12 +99,17 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ),
       };
     case "set-alpha":
-      return { ...state, alpha: clampAlpha(action.alpha) };
+      return {
+        ...state,
+        celebrateVictory: false,
+        alpha: clampAlpha(action.alpha),
+      };
     case "set-view":
-      return { ...state, activeView: action.view };
+      return { ...state, celebrateVictory: false, activeView: action.view };
     case "continue-challenge":
       return {
         ...state,
+        celebrateVictory: false,
         challenge: continueChallenge(state.challenge),
       };
     case "show-challenge-result":
@@ -104,6 +117,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ? state
         : {
             ...state,
+            celebrateVictory: false,
             activeView: "play",
             challenge: { ...state.challenge, status: "result" },
           };

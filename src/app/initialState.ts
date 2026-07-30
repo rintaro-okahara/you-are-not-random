@@ -33,6 +33,7 @@ export interface AppState {
   readonly pendingRound: PendingRound;
   readonly challenge: ChallengeState;
   readonly activeView: "play" | "lab";
+  readonly celebrateVictory: boolean;
 }
 
 const defaultLearningStats = createLearningStats();
@@ -60,6 +61,7 @@ export function createInitialState(
   const random = options.random ?? secureRandom;
   return {
     ...persisted,
+    celebrateVictory: false,
     pendingRound: preparePendingRound(
       persisted.learningStats,
       persisted.expertWeights,

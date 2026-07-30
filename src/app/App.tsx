@@ -146,6 +146,7 @@ export function App({ random = secureRandom }: AppProps) {
             state.challenge.result !== null ? (
               <ChallengeResult
                 result={state.challenge.result}
+                celebrate={state.celebrateVictory}
                 onContinue={() => dispatch({ type: "continue-challenge" })}
                 onRetry={() => {
                   clearSavedState();

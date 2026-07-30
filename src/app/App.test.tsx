@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { saveState } from "../storage/localStorage";
 import { App } from "./App";
+import { DEFAULT_PERSISTED_STATE } from "./initialState";
 
 describe("You Are Not Random UI", () => {
   it("introduces the game immediately and defaults to PLAY", () => {
@@ -74,9 +76,14 @@ describe("You Are Not Random UI", () => {
     }
 
     expect(
-      screen.getByRole("heading", { name: "分析完了" }),
+      screen.getByRole("heading", { name: "HUMAN VICTORY" }),
     ).toHaveFocus();
-    expect(screen.getByText("あなた 50勝")).toBeVisible();
+    expect(
+      screen.getByRole("region", { name: "HUMAN VICTORY" }),
+    ).toHaveAttribute("data-celebrate", "true");
+    expect(
+      screen.getByText(/50戦の成績：あなた 50勝/),
+    ).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: "じゃんけんを続ける" }),
@@ -88,6 +95,50 @@ describe("You Are Not Random UI", () => {
     await user.click(
       screen.getByRole("button", { name: "50戦の診断を見る" }),
     );
-    expect(screen.getByText("あなた 50勝")).toBeVisible();
+    expect(
+      screen.getByRole("region", { name: "HUMAN VICTORY" }),
+    ).not.toHaveAttribute("data-celebrate", "true");
+    expect(
+      screen.getByText(/50戦の成績：あなた 50勝/),
+    ).toBeInTheDocument();
+  });
+
+  it("restores a completed human victory without replaying confetti", () => {
+    saveState({
+      ...DEFAULT_PERSISTED_STATE,
+      learningStats: {
+        ...DEFAULT_PERSISTED_STATE.learningStats,
+        totalRounds: 50,
+        humanWins: 26,
+        aiWins: 19,
+        draws: 5,
+      },
+      challenge: {
+        status: "result",
+        baseline: {
+          totalRounds: 0,
+          humanWins: 0,
+          aiWins: 0,
+          draws: 0,
+        },
+        result: {
+          completedAt: 123,
+          humanWins: 26,
+          aiWins: 19,
+          draws: 5,
+          expertId: "repeat-last",
+          expertName: "Repeat Last",
+          suspicionText:
+            "直前と同じ手をもう一度出す傾向を疑っています",
+          support: 0.4,
+        },
+      },
+    });
+
+    render(<App random={() => 0} />);
+
+    expect(
+      screen.getByRole("region", { name: "HUMAN VICTORY" }),
+    ).not.toHaveAttribute("data-celebrate", "true");
   });
 });
