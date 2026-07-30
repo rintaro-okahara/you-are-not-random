@@ -7,6 +7,7 @@ import {
   challengeProgress,
   continueChallenge,
   createChallengeState,
+  resultOutcome,
 } from "./challenge";
 
 const baselineStats = createLearningStats();
@@ -15,6 +16,14 @@ const weights = EXPERTS.map((_, index) =>
 );
 
 describe("50-round challenge", () => {
+  it.each([
+    [{ humanWins: 26, aiWins: 20 }, "human-victory"],
+    [{ humanWins: 20, aiWins: 26 }, "ai-victory"],
+    [{ humanWins: 22, aiWins: 22 }, "draw"],
+  ] as const)("classifies %o as %s", (score, expected) => {
+    expect(resultOutcome(score)).toBe(expected);
+  });
+
   it("stays active through round 49 and snapshots round 50 once", () => {
     const challenge = createChallengeState(baselineStats);
     const at49 = {

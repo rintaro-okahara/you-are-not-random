@@ -5,6 +5,7 @@ export const CHALLENGE_ROUNDS = 50;
 
 export type ChallengeStatus = "active" | "result" | "continued";
 export type ChallengeStage = "analyzing" | "provisional" | "complete";
+export type ChallengeOutcome = "human-victory" | "ai-victory" | "draw";
 
 export interface ChallengeBaseline {
   readonly totalRounds: number;
@@ -35,6 +36,15 @@ export interface ChallengeProgress {
   readonly aiWins: number;
   readonly humanWins: number;
   readonly draws: number;
+}
+
+type ResultScore = Pick<ChallengeResult, "humanWins" | "aiWins">;
+
+export function resultOutcome(result: ResultScore): ChallengeOutcome {
+  if (result.humanWins > result.aiWins) {
+    return "human-victory";
+  }
+  return result.humanWins < result.aiWins ? "ai-victory" : "draw";
 }
 
 export function createChallengeState(stats: LearningStats): ChallengeState {
