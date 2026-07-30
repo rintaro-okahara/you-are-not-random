@@ -1,11 +1,41 @@
-import type { ChallengeResult } from "../challenge/challenge";
+import {
+  resultOutcome,
+  type ChallengeResult,
+} from "../challenge/challenge";
 
 const CARD_WIDTH = 1_200;
 const CARD_HEIGHT = 630;
 const SHARE_TITLE = "勝利不能？じゃんけんAI — YOU ARE NOT RANDOM";
+const SANS_FONT =
+  '"Hiragino Sans", "Yu Gothic", YuGothic, Meiryo, system-ui, sans-serif';
 
 function suspicionLabel(result: ChallengeResult): string {
   return result.suspicionText.replace(/を疑っています$/, "");
+}
+
+function scoreLine(result: ChallengeResult): string {
+  return `YOU ${result.humanWins}勝 / AI ${result.aiWins}勝 / DRAW ${result.draws}回`;
+}
+
+function shareLines(result: ChallengeResult): string[] {
+  if (resultOutcome(result) === "human-victory") {
+    return [
+      "勝利不能、ではなかった。",
+      "「勝利不能？じゃんけんAI」に50戦で勝ち越しました。",
+      "",
+      scoreLine(result),
+    ];
+  }
+  return [
+    "勝利不能？じゃんけんAIに50回挑戦。",
+    `AIに「${suspicionLabel(result)}」を疑われました。`,
+    "",
+    scoreLine(result),
+  ];
+}
+
+function createShareBody(result: ChallengeResult): string {
+  return [...shareLines(result), "#勝利不能じゃんけんAI"].join("\n");
 }
 
 export function createShareText(
@@ -13,14 +43,19 @@ export function createShareText(
   url: string,
 ): string {
   return [
-    "勝利不能？じゃんけんAIに50回挑戦。",
-    `AIに「${suspicionLabel(result)}」を疑われました。`,
-    "",
-    `あなた ${result.humanWins}勝 / AI ${result.aiWins}勝 / ${result.draws}分`,
-    "あなたはAIに読まれずにいられる？",
+    ...shareLines(result),
     url,
-    "#勝利不能じゃんけんAI #YouAreNotRandom",
+    "#勝利不能じゃんけんAI",
   ].join("\n");
+}
+
+export function createXShareUrl(
+  result: ChallengeResult,
+  url: string,
+): string {
+  const intent = new URL("https://x.com/intent/post");
+  intent.searchParams.set("text", createShareText(result, url));
+  return intent.toString();
 }
 
 function drawGrid(context: CanvasRenderingContext2D) {
@@ -91,12 +126,64 @@ function drawResultCard(
 
   context.textAlign = "left";
   context.textBaseline = "alphabetic";
+
+  if (resultOutcome(result) === "human-victory") {
+    context.fillStyle = "#ffcc66";
+    context.fillRect(64, 58, 7, 514);
+    context.fillRect(64, 58, 250, 2);
+
+    context.fillStyle = "#c7b77e";
+    context.font = '500 20px "DM Mono", monospace';
+    context.fillText("50 ROUNDS COMPLETE / HUMAN VICTORY", 104, 100);
+
+    context.fillStyle = "#fff1bc";
+    context.font = `800 70px ${SANS_FONT}`;
+    context.fillText("HUMAN VICTORY", 104, 210);
+
+    context.fillStyle = "#e8f1ee";
+    context.font = `700 31px ${SANS_FONT}`;
+    context.fillText("勝利不能、ではなかった。", 104, 278);
+
+    context.fillStyle = "#8ca29e";
+    context.font = `500 20px ${SANS_FONT}`;
+    context.fillText("50戦でAIに勝ち越しました。", 104, 322);
+
+    context.fillStyle = "#ffcc66";
+    context.font = '700 30px "DM Mono", monospace';
+    context.fillText(
+      `YOU ${result.humanWins}  —  ${result.aiWins} AI  /  DRAW ${result.draws}`,
+      104,
+      410,
+    );
+
+    context.fillStyle = "#8ca29e";
+    context.font = `500 17px ${SANS_FONT}`;
+    context.fillText("AIが最も強く疑った仮説", 104, 472);
+
+    context.fillStyle = "#e8f1ee";
+    context.font = `700 25px ${SANS_FONT}`;
+    drawWrappedText(
+      context,
+      `「${suspicionLabel(result)}」`,
+      104,
+      513,
+      900,
+      36,
+      1,
+    );
+
+    context.fillStyle = "#5eead4";
+    context.font = '500 17px "DM Mono", monospace';
+    context.fillText("勝利不能？じゃんけんAI / YOU ARE NOT RANDOM", 104, 570);
+    return;
+  }
+
   context.fillStyle = "#8ca29e";
   context.font = '500 20px "DM Mono", monospace';
   context.fillText("50 ROUND ANALYSIS / 24 HYPOTHESES", 104, 100);
 
   context.fillStyle = "#e8f1ee";
-  context.font = '800 58px Manrope, "Noto Sans JP", sans-serif';
+  context.font = `800 58px ${SANS_FONT}`;
   context.fillText("勝利不能？じゃんけんAI", 100, 174);
 
   context.fillStyle = "#5eead4";
@@ -104,11 +191,11 @@ function drawResultCard(
   context.fillText("YOU ARE NOT RANDOM", 104, 217);
 
   context.fillStyle = "#8ca29e";
-  context.font = '500 18px Manrope, "Noto Sans JP", sans-serif';
+  context.font = `500 18px ${SANS_FONT}`;
   context.fillText("AIが最も強く疑った仮説", 104, 286);
 
   context.fillStyle = "#e8f1ee";
-  context.font = '700 34px Manrope, "Noto Sans JP", sans-serif';
+  context.font = `700 34px ${SANS_FONT}`;
   drawWrappedText(
     context,
     `「${suspicionLabel(result)}」`,
@@ -136,7 +223,7 @@ function drawResultCard(
   );
 
   context.fillStyle = "#8ca29e";
-  context.font = '500 18px Manrope, "Noto Sans JP", sans-serif';
+  context.font = `500 18px ${SANS_FONT}`;
   context.fillText("あなたはAIに読まれずにいられる？", 104, 558);
 }
 
@@ -184,7 +271,11 @@ export async function shareResult(
     await navigator.share({ title: SHARE_TITLE, text, files: [file] });
     return;
   }
-  await navigator.share({ title: SHARE_TITLE, text, url });
+  await navigator.share({
+    title: SHARE_TITLE,
+    text: createShareBody(result),
+    url,
+  });
 }
 
 export async function downloadResult(

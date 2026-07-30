@@ -4,6 +4,7 @@ import {
   copyResultText,
   createResultPng,
   createShareText,
+  createXShareUrl,
   downloadResult,
   shareResult,
 } from "./resultCard";
@@ -17,6 +18,13 @@ const result: ChallengeResult = {
   expertName: "Repeat Last",
   suspicionText: "直前と同じ手をもう一度出す傾向を疑っています",
   support: 0.4,
+};
+
+const humanVictory: ChallengeResult = {
+  ...result,
+  aiWins: 19,
+  humanWins: 26,
+  draws: 5,
 };
 
 function installCanvas() {
@@ -52,12 +60,29 @@ afterEach(() => {
 });
 
 describe("result sharing", () => {
+  it("celebrates a human victory in the public post text", () => {
+    const text = createShareText(humanVictory, "https://example.test/");
+    expect(text).toContain("勝利不能、ではなかった。");
+    expect(text).toContain("50戦で勝ち越しました");
+    expect(text).toContain("YOU 26勝 / AI 19勝 / DRAW 5回");
+  });
+
+  it("builds an encoded X Web Intent from the frozen result", () => {
+    const intent = new URL(
+      createXShareUrl(humanVictory, "https://example.test/"),
+    );
+    expect(intent.origin + intent.pathname).toBe("https://x.com/intent/post");
+    expect(intent.searchParams.get("text")).toBe(
+      createShareText(humanVictory, "https://example.test/"),
+    );
+  });
+
   it("creates an honest, non-diagnostic share message", () => {
     const text = createShareText(result, "https://example.test/");
     expect(text).toContain(
       "AIに「直前と同じ手をもう一度出す傾向」を疑われました",
     );
-    expect(text).toContain("あなた 18勝 / AI 21勝 / 11分");
+    expect(text).toContain("YOU 18勝 / AI 21勝 / DRAW 11回");
     expect(text).toContain("#勝利不能じゃんけんAI");
     expect(text).not.toContain("あなたはRepeat Last型です");
   });
@@ -67,6 +92,21 @@ describe("result sharing", () => {
     const blob = await createResultPng(result);
     expect(blob.type).toBe("image/png");
     expect(HTMLCanvasElement.prototype.toBlob).toHaveBeenCalled();
+  });
+
+  it("renders the human victory treatment into the PNG", async () => {
+    const context = installCanvas();
+    await createResultPng(humanVictory);
+    expect(context.fillText).toHaveBeenCalledWith(
+      "HUMAN VICTORY",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(context.fillText).toHaveBeenCalledWith(
+      "勝利不能、ではなかった。",
+      expect.any(Number),
+      expect.any(Number),
+    );
   });
 
   it("shares a PNG file when file sharing is supported", async () => {
@@ -103,7 +143,7 @@ describe("result sharing", () => {
     await shareResult(result, "https://example.test/");
     expect(share).toHaveBeenCalledWith({
       title: "勝利不能？じゃんけんAI — YOU ARE NOT RANDOM",
-      text: expect.stringContaining("疑われました"),
+      text: expect.not.stringContaining("https://example.test/"),
       url: "https://example.test/",
     });
     expect(toBlob).not.toHaveBeenCalled();
