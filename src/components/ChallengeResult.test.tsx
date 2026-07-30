@@ -51,7 +51,11 @@ describe("ChallengeResult", () => {
     expect(
       screen.getByRole("heading", { name: "HUMAN VICTORY" }),
     ).toHaveFocus();
-    expect(screen.getByText("勝利不能、ではなかった。")).toBeVisible();
+    expect(
+      screen.getByText(
+        "勝利不能、ではなかった。50戦でAIに勝ち越しました。",
+      ),
+    ).toBeVisible();
     expect(
       screen.getByText("VICTORY", { selector: ".victory-stamp" }),
     ).toBeVisible();

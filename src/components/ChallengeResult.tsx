@@ -82,7 +82,7 @@ export function ChallengeResult({
         </h2>
         <p>
           {isHumanVictory
-            ? "勝利不能、ではなかった。"
+            ? "勝利不能、ではなかった。50戦でAIに勝ち越しました。"
             : "あなたの50戦から、AIが最も強く支持した仮説です。"}
         </p>
       </div>
