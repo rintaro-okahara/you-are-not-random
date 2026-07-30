@@ -46,6 +46,8 @@ describe("ChallengeResult", () => {
       />,
     );
 
+    const region = screen.getByRole("region", { name: "HUMAN VICTORY" });
+    expect(region).toHaveClass("result-human-victory");
     expect(
       screen.getByRole("heading", { name: "HUMAN VICTORY" }),
     ).toHaveFocus();
@@ -53,6 +55,33 @@ describe("ChallengeResult", () => {
     expect(
       screen.getByText("VICTORY", { selector: ".victory-stamp" }),
     ).toBeVisible();
+  });
+
+  it.each([
+    ["AI victory", result],
+    [
+      "draw",
+      {
+        ...result,
+        aiWins: 22,
+        humanWins: 22,
+        draws: 6,
+      },
+    ],
+  ])("keeps the standard analysis result for %s", (_, standardResult) => {
+    render(
+      <ChallengeResult
+        result={standardResult}
+        onContinue={() => undefined}
+        onRetry={() => undefined}
+        onOpenLab={() => undefined}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "分析完了" }),
+    ).toHaveFocus();
+    expect(screen.queryByText("VICTORY")).toBeNull();
   });
 
   it("exposes a safe direct X link before the other share actions", () => {
